@@ -123,69 +123,69 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="rounded-md border">
-      {/* Search Input */}
-      <div className="p-4">
-        <Input
-          placeholder="Search..."
-          onChange={(e) => handleFilterChange(e.target.value)}
-        />
-      </div>
+  {/* Search Input */}
+  <div className="p-4">
+    <Input
+      placeholder="Search..."
+      onChange={(e) => handleFilterChange(e.target.value)}
+    />
+  </div>
 
-      {/* Table Container */}
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className="cursor-pointer select-none"
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    <div className="flex items-center">
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      {header.column.getCanSort() && (
-                        <ChevronsUpDown
-                          className={`ml-2 h-4 w-4 transition-transform ${
-                            header.column.getIsSorted()
-                              ? header.column.getIsSorted() === "desc"
-                                ? "rotate-180"
-                                : "rotate-0"
-                              : ""
-                          }`}
-                        />
-                      )}
-                    </div>
-                  </TableHead>
-                ))}
-              </TableRow>
+  {/* Table Container */}
+  <div className="overflow-x-auto" style={{ height: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+    <Table>
+      <TableHeader>
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow key={headerGroup.id}>
+            {headerGroup.headers.map((header) => (
+              <TableHead
+                key={header.id}
+                className="cursor-pointer select-none"
+                onClick={header.column.getToggleSortingHandler()}
+              >
+                <div className="flex items-center">
+                  {flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  )}
+                  {header.column.getCanSort() && (
+                    <ChevronsUpDown
+                      className={`ml-2 h-4 w-4 transition-transform ${
+                        header.column.getIsSorted()
+                          ? header.column.getIsSorted() === "desc"
+                            ? "rotate-180"
+                            : "rotate-0"
+                          : ""
+                      }`}
+                    />
+                  )}
+                </div>
+              </TableHead>
             ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => renderRow(row))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+          </TableRow>
+        ))}
+      </TableHeader>
+      <TableBody>
+        {table.getRowModel().rows.length > 0 ? (
+          table.getRowModel().rows.map((row) => renderRow(row))
+        ) : (
+          <TableRow>
+            <TableCell
+              colSpan={columns.length}
+              className="h-24 text-center"
+            >
+              No results.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  </div>
 
-      {/* Footer with Total Orders */}
-      <div className="sticky bottom-0 bg-white p-4 text-right font-semibold">
-  Total Orders: {totalOrders}
+  {/* Footer with Total Orders */}
+  <div className="sticky bottom-0 bg-white p-4 text-right font-semibold">
+    Total Orders: {totalOrders}
+  </div>
 </div>
-    </div>
   );
 }
