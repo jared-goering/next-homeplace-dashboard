@@ -15,13 +15,15 @@ import { Row } from "@tanstack/react-table"; // Add this import if not already p
 
 interface SalesListProps {
   sales: Sale[];
-  setSales: React.Dispatch<React.SetStateAction<Sale[]>>; // Add this line
+  setSales: React.Dispatch<React.SetStateAction<Sale[]>>;
   handleDateChange: (
     orderNumber: string,
-    dateRange: DateRange | undefined
-  ) => void;
+    dateRange: DateRange | undefined,
+    isManual: boolean
+  ) => Promise<void>;
   handleFieldChange: (orderNumber: string, updatedSale: Partial<Sale>) => void;
 }
+
 
 const SalesList: React.FC<SalesListProps> = ({
   sales,
@@ -120,7 +122,31 @@ const SalesList: React.FC<SalesListProps> = ({
   );
 
   
-  const columns: ColumnDef<Sale, any>[] = useMemo(
+  const renderPrintDatesCell = useCallback(
+    ({ row }: { row: Row<Sale> }) => {
+      const sale = row.original;
+  
+      const onDateChange = useCallback(
+        (dateRange: DateRange | undefined) => {
+          handleDateChange(sale.OrderNumber, dateRange, sale.isManual || false);
+        },
+        [handleDateChange, sale.OrderNumber, sale.isManual]
+      );
+  
+      return (
+        <DatePicker
+          dateRange={sale.PrintDateRange}
+          onDateChange={onDateChange}
+          placeholder="Select date range"
+        />
+      );
+    },
+    [handleDateChange]
+  );
+  
+  
+  
+  const staticColumns: ColumnDef<Sale, any>[] = useMemo(
     () => [
       {
         accessorKey: "group",
@@ -156,16 +182,27 @@ const SalesList: React.FC<SalesListProps> = ({
         },
       },
       {
-        accessorKey: "OrderNumber",
-        header: "Order #",
-        cell: ({ row }) => row.original.OrderNumber,
-      },
-      
-      {
         accessorKey: "Customer",
         header: "Customer",
         cell: renderCustomerCell,
       },
+      {
+        accessorKey: "OrderNumber",
+        header: "Order #",
+        cell: ({ row }) => row.original.OrderNumber,
+      },
+      {
+        accessorKey: "PrintDates",
+        header: "Print Dates",
+        cell: renderPrintDatesCell,
+      },
+    ],
+    [renderPrintDatesCell] // Dependencies for static columns
+  );
+
+  const dynamicColumns: ColumnDef<Sale, any>[] = useMemo(
+    () => [
+     
       {
         accessorKey: "OrderDate",
         header: "Order Date",
@@ -182,6 +219,7 @@ const SalesList: React.FC<SalesListProps> = ({
               isEditing={isEditing}
               onChange={(value) => handleFieldChangeLocal("OrderDate", value)}
               type="date"
+              formatter={formatDate} // Pass formatDate as formatter
             />
           );
         },
@@ -201,22 +239,6 @@ const SalesList: React.FC<SalesListProps> = ({
               }
               isEditing={isEditing}
               onChange={(value) => handleFieldChangeLocal("Status", value)}
-            />
-          );
-        },
-      },
-      {
-        accessorKey: "PrintDates",
-        header: "Print Dates",
-        cell: ({ row }) => {
-          const sale = row.original;
-          return (
-            <DatePicker
-              dateRange={sale.PrintDateRange}
-              onDateChange={(dateRange) =>
-                handleDateChange(sale.OrderNumber, dateRange)
-              }
-              placeholder="Select date range"
             />
           );
         },
@@ -270,11 +292,17 @@ const SalesList: React.FC<SalesListProps> = ({
       editingRow,
       editedFields,
       handleFieldChangeLocal,
-      handleDateChange,
       handleSave,
       handleCancel,
-    ]
+    ] // Dependencies for dynamic columns
   );
+  
+  const columns = useMemo(
+    () => [...staticColumns, ...dynamicColumns],
+    [staticColumns, dynamicColumns]
+  );
+
+
 
   return (
     <div>
@@ -289,6 +317,7 @@ interface EditableCellProps {
   isEditing: boolean;
   onChange: (value: string) => void;
   type?: string;
+  formatter?: (value: string) => string; // Add this line
 }
 
 const EditableCell: React.FC<EditableCellProps> = ({
@@ -296,6 +325,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
   isEditing,
   onChange,
   type = "text",
+  formatter, // Destructure the formatter prop
 }) => {
   const [localValue, setLocalValue] = useState(value);
 
@@ -320,7 +350,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
       />
     );
   } else {
-    return <span>{type === "date" ? value : value}</span>;
+    return <span>{formatter ? formatter(value) : value}</span>; // Use formatter if provided
   }
 };
 

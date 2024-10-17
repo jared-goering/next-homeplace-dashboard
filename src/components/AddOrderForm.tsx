@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
 import { DateRange } from 'react-day-picker';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "@radix-ui/react-icons";
+import { format } from "date-fns";
 
 interface AddOrderFormProps {
   onAddOrder: (order: NewOrder) => void;
@@ -17,7 +24,7 @@ interface NewOrder {
 const AddOrderForm: React.FC<AddOrderFormProps> = ({ onAddOrder }) => {
   const [orderNumber, setOrderNumber] = useState('');
   const [customer, setCustomer] = useState('');
-  const [orderDate, setOrderDate] = useState('');
+  const [orderDate, setOrderDate] = useState<Date | undefined>(undefined);
   const [status, setStatus] = useState('');
   const [invoiceAmount, setInvoiceAmount] = useState<number | ''>('');
 
@@ -27,10 +34,9 @@ const AddOrderForm: React.FC<AddOrderFormProps> = ({ onAddOrder }) => {
     const newOrder: NewOrder = {
       OrderNumber: orderNumber,
       Customer: customer,
-      OrderDate: orderDate,
+      OrderDate: orderDate ? orderDate.toISOString() : '',
       Status: status,
       InvoiceAmount: Number(invoiceAmount),
-      // Optionally include PrintDateRange if needed
     };
 
     onAddOrder(newOrder);
@@ -38,71 +44,90 @@ const AddOrderForm: React.FC<AddOrderFormProps> = ({ onAddOrder }) => {
     // Reset form fields
     setOrderNumber('');
     setCustomer('');
-    setOrderDate('');
+    setOrderDate(undefined);
     setStatus('');
     setInvoiceAmount('');
   };
 
   return (
-    <div className="mb-6">
-      <h2 className="text-xl font-bold mb-2">Add New Order</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block font-medium">Order Number:</label>
-          <input
-            type="text"
-            value={orderNumber}
-            onChange={(e) => setOrderNumber(e.target.value)}
-            required
-            className="border p-2 w-full"
-          />
-        </div>
-        <div>
-          <label className="block font-medium">Customer:</label>
-          <input
-            type="text"
-            value={customer}
-            onChange={(e) => setCustomer(e.target.value)}
-            required
-            className="border p-2 w-full"
-          />
-        </div>
-        <div>
-          <label className="block font-medium">Order Date:</label>
-          <input
-            type="date"
-            value={orderDate}
-            onChange={(e) => setOrderDate(e.target.value)}
-            required
-            className="border p-2 w-full"
-          />
-        </div>
-        <div>
-          <label className="block font-medium">Status:</label>
-          <input
-            type="text"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            required
-            className="border p-2 w-full"
-          />
-        </div>
-        <div>
-          <label className="block font-medium">Invoice Amount:</label>
-          <input
-            type="number"
-            value={invoiceAmount}
-            onChange={(e) => setInvoiceAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
-            required
-            className="border p-2 w-full"
-            />
-        </div>
-        {/* Optionally, add a DatePicker for PrintDateRange */}
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
+    <Card className="w-full"> {/* Make the card full width */}
+      <CardHeader>
+        <CardTitle className="text-xl">Add New Order</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-medium mb-1">Order Number:</label>
+              <Input
+                type="text"
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                required
+                placeholder="Enter order number"
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Customer:</label>
+              <Input
+                type="text"
+                value={customer}
+                onChange={(e) => setCustomer(e.target.value)}
+                required
+                placeholder="Enter customer name"
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Order Date:</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full text-left"
+                  >
+                    {orderDate ? format(orderDate, 'PPP') : 'Pick a date'}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={orderDate}
+                    onSelect={setOrderDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Status:</label>
+              <Input
+                type="text"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                required
+                placeholder="Enter status"
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Invoice Amount:</label>
+              <Input
+                type="number"
+                value={invoiceAmount}
+                onChange={(e) => setInvoiceAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                required
+                placeholder="Enter invoice amount"
+              />
+            </div>
+          </div>
+        </form>
+      </CardContent>
+      <CardFooter>
+        <Button onClick={handleSubmit} type="submit" className="bg-blue-500 text-white w-full">
           Add Order
-        </button>
-      </form>
-    </div>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 
