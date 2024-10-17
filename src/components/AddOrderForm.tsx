@@ -92,10 +92,10 @@ const AddOrderForm: React.FC<AddOrderFormProps> = ({ onAddOrder }) => {
           <input
             type="number"
             value={invoiceAmount}
-            onChange={(e) => setInvoiceAmount(e.target.value)}
+            onChange={(e) => setInvoiceAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
             required
             className="border p-2 w-full"
-          />
+            />
         </div>
         {/* Optionally, add a DatePicker for PrintDateRange */}
         <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">

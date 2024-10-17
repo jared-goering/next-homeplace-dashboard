@@ -145,6 +145,27 @@ export default function Home() {
     }
   };
 
+   
+const handleFieldChange = async (orderNumber: string, updatedFields: Partial<Sale>) => {
+  // Update state
+  setSales((prevSales) =>
+    prevSales.map((sale) =>
+      sale.OrderNumber === orderNumber ? { ...sale, ...updatedFields } : sale
+    )
+  );
+
+  // Prepare data for the API
+  try {
+    await axios.post("/api/sales/update-order", {
+      orderNumber,
+      updatedData: updatedFields, // Change 'updatedFields' to 'updatedData'
+    });
+    // Optionally, show success message
+  } catch (error) {
+    // Error handling
+  }
+};
+
   if (loading) {
     return (
       <div className="container mx-auto p-4">Loading sales data...</div>
@@ -161,8 +182,13 @@ export default function Home() {
 
       <div className="flex flex-col md:flex-row">
         <div className="md:w-2/3 md:pr-4">
-          <SalesList sales={sales} handleDateChange={handleDateChange} />
-        </div>
+        <SalesList
+          sales={sales}
+          setSales={setSales} // Add this line
+          handleDateChange={handleDateChange}
+          handleFieldChange={handleFieldChange}
+        />
+           </div>
         <div className="md:w-1/3 md:prl-4">
           <SalesCalendar sales={sales} />
         </div>

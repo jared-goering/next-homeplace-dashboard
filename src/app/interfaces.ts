@@ -10,4 +10,5 @@ export interface Sale {
   InvoiceAmount: number;
   group?: string;
   PrintDateRange?: DateRange;
+  isManual?: boolean; // Add this line
 }

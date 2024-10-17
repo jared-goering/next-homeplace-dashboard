@@ -38,20 +38,42 @@ export async function GET(req) {
     });
 
     // Fetch manual orders from Firebase
-    const manualOrdersCollection = collection(firestore, 'manualOrders');
-    const manualOrdersSnapshot = await getDocs(manualOrdersCollection);
-    const manualOrders = [];
+const manualOrdersCollection = collection(firestore, 'manualOrders');
+const manualOrdersSnapshot = await getDocs(manualOrdersCollection);
+const manualOrders = [];
 
-    manualOrdersSnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      manualOrders.push({
-        ...data,
-        OrderNumber: docSnap.id,
-      });
-    });
+manualOrdersSnapshot.forEach((docSnap) => {
+  const data = docSnap.data();
+  manualOrders.push({
+    ...data,
+    OrderNumber: docSnap.id,
+    isManual: true, // Add this line
+  });
+});
+
+        // Fetch external order overrides from Firebase
+        const overridesCollection = collection(firestore, 'externalOrderOverrides');
+        const overridesSnapshot = await getDocs(overridesCollection);
+        const externalOrderOverrides = {};
+    
+        overridesSnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const orderNumber = docSnap.id;
+          externalOrderOverrides[orderNumber] = data;
+        });
+    
+        // Merge overrides with external API sales data
+const salesWithOverrides = salesData.SaleList.map((sale) => {
+  const orderNumber = sale.OrderNumber;
+  const override = externalOrderOverrides[orderNumber];
+  if (override) {
+    return { ...sale, ...override };
+  }
+  return sale;
+});
 
     // Merge the sales data from external API and manual orders
-    const allSales = [...salesData.SaleList, ...manualOrders];
+    const allSales = [...salesWithOverrides, ...manualOrders]; // Use salesWithOverrides instead of salesData.SaleList
 
     // Merge the print date ranges
     const processedSales = allSales.map((sale) => {
@@ -65,7 +87,7 @@ export async function GET(req) {
     });
 
     // Return the merged sales data
-    return new Response(JSON.stringify({ SaleList: processedSales }), {
+    return new Response(JSON.stringify({ SaleList: allSales }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
