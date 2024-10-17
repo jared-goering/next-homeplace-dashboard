@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import SalesList from "../components/SalesList";
+import SalesList from "@/components/SalesList";
 import SalesCalendar from "../components/SalesCalendar";
 import { DateRange } from "react-day-picker";
 import { Sale } from "./interfaces"; // Adjust the path as necessary
