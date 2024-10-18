@@ -1,7 +1,7 @@
 import React from 'react';
 import FullCalendar from '@fullcalendar/react';
 import { EventInput } from '@fullcalendar/core';
-import dayGridPlugin from '@fullcalendar/daygrid'; 
+import dayGridPlugin from '@fullcalendar/daygrid';
 import { Sale } from '../app/interfaces'; // Adjust the import path as necessary
 import { format } from 'date-fns';
 
@@ -68,14 +68,37 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
         endDate.getTime() + 24 * 60 * 60 * 1000
       );
 
+      // Determine source and set colors
+      let backgroundColor;
+      let textColor = '#212529';
+      if (!sale.isManual) {
+        // Printavo
+        backgroundColor = '#C2CB96'; 
+      } else if (sale.Customer && sale.Customer.includes('Murdoch')) {
+        // Murdochs
+        backgroundColor = '#F5BDA8'; 
+      } else {
+        // Regular
+        backgroundColor = '#CBDDE9'; 
+        textColor = '#212529';
+      }
+
       return {
         title: sale.Customer!,
         start: format(startDate, 'yyyy-MM-dd'),
         end: format(adjustedEndDate, 'yyyy-MM-dd'),
+        backgroundColor: backgroundColor,
+        borderColor: backgroundColor,
+        textColor: textColor,
         extendedProps: {
           customer: sale.Customer!,
           status: sale.Status,
           invoiceAmount: sale.InvoiceAmount,
+          source: sale.isManual
+            ? sale.Customer.includes('Murdoch')
+              ? 'Murdochs'
+              : 'Regular'
+            : 'Printavo',
         },
       };
     });
@@ -83,6 +106,41 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Sales Calendar</h1>
+      {/* Legend */}
+      <div className="mb-4">
+        <span
+          style={{
+            backgroundColor: '#C2CB96',
+            color: '#212529',
+            padding: '4px 8px',
+            marginRight: '8px',
+            borderRadius: '4px',
+          }}
+        >
+          Printavo
+        </span>
+        <span
+          style={{
+            backgroundColor: '#F5BDA8',
+            color: '#212529',
+            padding: '4px 8px',
+            marginRight: '8px',
+            borderRadius: '4px',
+          }}
+        >
+          Murdochs
+        </span>
+        <span
+          style={{
+            backgroundColor: '#CBDDE9',
+            color: '#212529',
+            padding: '4px 8px',
+            borderRadius: '4px',
+          }}
+        >
+          Regular
+        </span>
+      </div>
       <FullCalendar
         plugins={[dayGridPlugin]}
         initialView="dayGridMonth"

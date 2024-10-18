@@ -4,7 +4,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import SalesList from "@/components/SalesList";
 import SalesCalendar from "../components/SalesCalendar";
-import OpenQuotesList from "@/components/OpenQuotesList"; 
 import { DateRange } from "react-day-picker";
 import { Sale } from "./interfaces"; // Adjust the path as necessary
 import AddOrderForm from "../components/AddOrderForm"; // Import the new component
@@ -398,9 +397,6 @@ const handleDateChange = useCallback(
         </div>
 
       </div>
-      <div className="md:w-1/3 md:prl-4">
-          <OpenQuotesList />
-        </div>
     </div>
   );
 }
