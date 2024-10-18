@@ -30,15 +30,18 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
   }) => {
     const [open, setOpen] = React.useState(false);
 
-    const formattedDate =
-      dateRange && dateRange.from
-        ? dateRange.to
-          ? `${format(dateRange.from, "MM/dd/yyyy")} - ${format(
-              dateRange.to,
-              "MM/dd/yyyy"
-            )}`
-          : format(dateRange.from, "MM/dd/yyyy")
-        : placeholder || "Select date range";
+    function isValidDate(date: any): date is Date {
+        return date instanceof Date && !isNaN(date.getTime());
+      }
+
+      const fromDate = dateRange?.from;
+      const toDate = dateRange?.to;
+      
+      const formattedDate = isValidDate(fromDate)
+        ? isValidDate(toDate)
+          ? `${format(fromDate, 'MM/dd/yyyy')} - ${format(toDate, 'MM/dd/yyyy')}`
+          : format(fromDate, 'MM/dd/yyyy')
+        : placeholder || 'Select date range';
 
     return (
       <Popover open={open} onOpenChange={setOpen}>
