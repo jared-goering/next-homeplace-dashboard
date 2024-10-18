@@ -9,6 +9,13 @@ export async function GET(req) {
     const limit = 500; // Max limit
     const page = 1;
 
+    const accountId = process.env.CIN7_ACCOUNT_ID;
+const applicationKey = process.env.CIN7_APPLICATION_KEY;
+
+if (!accountId || !applicationKey) {
+  throw new Error('Missing CIN7 API credentials');
+}
+
     // Fetch sales data from the external API
     const response = await axios.get('https://inventory.dearsystems.com/ExternalApi/v2/saleList?STATUS=PACKED', {
       params: { Page: page, Limit: limit },
