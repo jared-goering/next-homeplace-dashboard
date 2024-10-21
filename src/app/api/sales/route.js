@@ -69,20 +69,20 @@ export async function GET(req) {
       externalOrderOverrides[orderNumber] = data;
     });
 
-    // Merge overrides with external API sales data
-    const salesWithOverrides = salesData.SaleList.map((sale) => {
-      const orderNumber = sale.OrderNumber;
-      const override = externalOrderOverrides[orderNumber];
+ // Merge overrides with external API sales data
+const salesWithOverrides = salesData.SaleList.map((sale) => {
+  const orderNumber = sale.OrderNumber;
+  const override = externalOrderOverrides[orderNumber];
 
-      if (override && override.PrintDateRange) {
-        // Only override the PrintDateRange field
-        return {
-          ...sale,
-          PrintDateRange: override.PrintDateRange,
-        };
-      }
-      return sale;
-    });
+  if (override) {
+    // Merge all fields from the override into the sale
+    return {
+      ...sale,
+      ...override, // Overrides any matching fields with values from override
+    };
+  }
+  return sale;
+});
 
     // Combine all sales
     const allSales = [...salesWithOverrides, ...manualOrders];
