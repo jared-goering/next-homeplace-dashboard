@@ -255,32 +255,32 @@ export default function Home() {
     }
   };
 
-  const handleFieldChange = async (
-    orderNumber: string,
-    updatedFields: Partial<Sale>
-  ) => {
-    setSales((prevSales) =>
-      prevSales.map((sale) =>
-        sale.OrderNumber === orderNumber ? { ...sale, ...updatedFields } : sale
-      )
-    );
-  
-    const sale = sales.find((s) => s.OrderNumber === orderNumber);
-    if (sale?.isManual) {
-      try {
-        await axios.post("/api/sales/update-order", {
-          orderNumber,
-          updatedData: updatedFields,
-        });
-      } catch (error) {
-        console.error("Error updating order:", error);
-      }
-    } else {
-      // Handle updates for imported sales if necessary
-      // For imported sales, you might restrict editing or store updates locally
-    }
-  };
-  
+// In Home.tsx
+const handleFieldChange = async (
+  orderNumber: string,
+  updatedSale: Sale
+) => {
+  // Update the state with the entire updated sale
+  setSales((prevSales) =>
+    prevSales.map((sale) =>
+      sale.OrderNumber === orderNumber ? updatedSale : sale
+    )
+  );
+
+  const isManual = updatedSale.isManual || false;
+
+  try {
+    await axios.post("/api/sales/update-order", {
+      orderNumber,
+      updatedData: updatedSale,
+      isManual,
+    });
+  } catch (error) {
+    console.error("Error updating order:", error);
+  }
+};
+
+
 
   const fetchOpenOrders = async (): Promise<Order[]> => {
     const statusIds = [

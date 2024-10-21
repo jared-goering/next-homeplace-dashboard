@@ -1,31 +1,29 @@
-import { NextResponse } from 'next/server';
-import { firestore } from '../../../../../firebaseConfig'; // Adjust the path as necessary
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+// app/api/sales/update-order/route.js
 
-// In update-order/route.js
+import { NextResponse } from 'next/server';
+import { firestoreAdmin as firestore } from '../../../../../firebaseAdmin'; // Use Admin SDK
 
 export async function POST(request) {
     try {
-      const { orderNumber, updatedData } = await request.json();
+      const { orderNumber, updatedData, isManual } = await request.json();
   
       if (!orderNumber || !updatedData) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
       }
   
-      // References to the documents
-      const manualOrderDocRef = doc(firestore, 'manualOrders', orderNumber);
-      const externalOrderDocRef = doc(firestore, 'externalOrderOverrides', orderNumber);
+      // Determine the collection based on whether the order is manual
+      const collectionName = isManual ? 'manualOrders' : 'externalOrderOverrides';
+      const saleDocRef = firestore.collection(collectionName).doc(orderNumber);
   
-      // Attempt to update manualOrders first
-      try {
-        await updateDoc(manualOrderDocRef, updatedData);
-      } catch (error) {
-        // If the document doesn't exist, update externalOrderOverrides
-        await setDoc(externalOrderDocRef, updatedData, { merge: true });
-      }
+      // Update the order using set with merge
+      await saleDocRef.set(updatedData, { merge: true });
   
       return NextResponse.json({ message: 'Order updated successfully' }, { status: 200 });
     } catch (error) {
-      // Error handling
+      console.error('Error updating order:', error);
+      return NextResponse.json(
+        { error: 'Error updating order', details: error.message },
+        { status: 500 }
+      );
     }
   }

@@ -1,34 +1,51 @@
 // components/SalesList/Renderers/StatusCell.tsx
 
-import React from "react";
-import EditableCell from "../EditableCell";
+import React, { useState, useEffect, useContext } from "react";
 import { Row } from "@tanstack/react-table";
 import { Sale } from "@/app/interfaces";
+import { SalesListContext } from "../SalesListContext";
 
 interface StatusCellProps {
   row: Row<Sale>;
-  editingOrderNumber: string | null;
-  handleFieldChangeLocal: (field: keyof Sale, value: any) => void;
 }
 
-const StatusCell: React.FC<StatusCellProps> = ({
-  row,
-  editingOrderNumber,
-  handleFieldChangeLocal,
-}) => {
+const StatusCell: React.FC<StatusCellProps> = ({ row }) => {
   const sale = row.original;
-  const isEditing = editingOrderNumber === sale.OrderNumber;
 
-  const value =
-    isEditing && sale.Status !== undefined ? sale.Status : sale.Status;
+  const context = useContext(SalesListContext);
+  if (!context) {
+    throw new Error("StatusCell must be used within a SalesListContext.Provider");
+  }
 
-  return (
-    <EditableCell
-      value={value}
-      isEditing={isEditing}
-      onChange={(value) => handleFieldChangeLocal("Status", value)}
-    />
-  );
+  const { editingOrderNumber, handleFieldChangeLocal } = context;
+  const isEditing = sale.OrderNumber === editingOrderNumber;
+
+  const [value, setValue] = useState(sale.Status || "");
+
+  useEffect(() => {
+    if (isEditing) {
+      setValue(sale.Status || "");
+    }
+  }, [isEditing]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setValue(newValue);
+    handleFieldChangeLocal("Status", newValue);
+  };
+
+  if (isEditing) {
+    return (
+      <input
+        type="text"
+        value={value}
+        onChange={handleChange}
+        className="border p-1 w-full"
+      />
+    );
+  } else {
+    return <span>{sale.Status}</span>;
+  }
 };
 
-export default React.memo(StatusCell);
+export default StatusCell;
