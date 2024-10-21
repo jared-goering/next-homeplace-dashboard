@@ -22,6 +22,7 @@ interface RawSale {
     from: string;
     to?: string;
   };
+  isManual?: boolean; // Include isManual in RawSale
 }
 
 interface NewOrder {
@@ -106,7 +107,10 @@ export default function Home() {
             };
           }
   
-          return { ...sale, group, PrintDateRange, isManual: true };
+              // Keep the isManual flag as is, default to false if undefined
+        const isManual = sale.isManual || false;
+
+        return { ...sale, group, PrintDateRange, isManual };
         });
       } else {
         console.error("Unexpected data format:", response.data);
@@ -167,50 +171,68 @@ export default function Home() {
   };
   
   
+  const handleDateChange = useCallback(
+    async (
+      orderNumber: string,
+      dateRange: DateRange | undefined
+    ): Promise<void> => {
+      // Determine if the order is manual
+      const sale = sales.find((sale) => sale.OrderNumber === orderNumber);
+      const isManual = sale ? sale.isManual : false;
   
-
- // In your Home component
- const handleDateChange = useCallback(
-  async (
-    orderNumber: string,
-    dateRange: DateRange | undefined
-  ): Promise<void> => {
-    // Determine if the order is manual
-    const sale = sales.find((sale) => sale.OrderNumber === orderNumber);
-    const isManual = sale ? sale.isManual : false;
-
-    // Update the state
-    setSales((prevSales) =>
-      prevSales.map((sale: Sale) => {
-        if (sale.OrderNumber === orderNumber) {
-          return { ...sale, PrintDateRange: dateRange };
-        }
-        return sale;
-      })
-    );
-
-    // Prepare data for the API
-    const printDateRange =
-      dateRange && dateRange.from
-        ? {
-            from: dateRange.from.toISOString(),
-            to: dateRange.to ? dateRange.to.toISOString() : null,
+      // Update the state
+      setSales((prevSales) =>
+        prevSales.map((sale: Sale) => {
+          if (sale.OrderNumber === orderNumber) {
+            return { ...sale, PrintDateRange: dateRange };
           }
-        : null;
-
-    try {
-      await axios.post("/api/sales/update-print-date", {
-        orderNumber,
-        printDateRange,
-        isManual,
-      });
-    } catch (error) {
-      console.error("Error updating print date range:", error);
-    }
-  },
-  [setSales, sales]
-);
-
+          return sale;
+        })
+      );
+  
+      // Prepare data for the API
+      let fromDate = dateRange && dateRange.from ? new Date(dateRange.from) : null;
+      let toDate = dateRange && dateRange.to ? new Date(dateRange.to) : null;
+  
+      // If only one date is selected, set both fromDate and toDate to that date
+      if (!fromDate && toDate) {
+        fromDate = toDate;
+      }
+      if (fromDate && !toDate) {
+        toDate = fromDate;
+      }
+  
+      // Ensure dates are valid
+      fromDate = fromDate && !isNaN(fromDate.getTime()) ? fromDate : null;
+      toDate = toDate && !isNaN(toDate.getTime()) ? toDate : null;
+  
+      // Log dates for debugging
+      console.log("fromDate:", fromDate);
+      console.log("toDate:", toDate);
+  
+      const printDateRange =
+        fromDate && toDate
+          ? {
+              from: fromDate.toISOString(),
+              to: toDate.toISOString(),
+            }
+          : null;
+  
+      console.log("printDateRange:", printDateRange);
+  
+      try {
+        await axios.post("/api/sales/update-print-date", {
+          orderNumber,
+          printDateRange,
+          isManual,
+        });
+      } catch (error) {
+        console.error("Error updating print date range:", error);
+      }
+    },
+    [setSales, sales]
+  );
+  
   
 
   const handleAddOrder = async (newOrder: NewOrder) => {

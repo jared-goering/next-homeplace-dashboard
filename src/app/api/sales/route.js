@@ -30,18 +30,27 @@ if (!accountId || !applicationKey) {
 
     const salesData = response.data; // Assuming response.data has a property 'SaleList'
 
- // Fetch manual orders from Firebase using Admin SDK
- const manualOrdersSnapshot = await firestore.collection('manualOrders').get();
- const manualOrders = [];
+// Fetch manual orders from Firebase using Admin SDK
+const manualOrdersSnapshot = await firestore.collection('manualOrders').get();
+const manualOrders = [];
 
- manualOrdersSnapshot.forEach((docSnap) => {
-   const data = docSnap.data();
-   manualOrders.push({
-     ...data,
-     OrderNumber: docSnap.id,
-     isManual: true,
-   });
- });
+manualOrdersSnapshot.forEach((docSnap) => {
+  const data = docSnap.data();
+
+  // Convert PrintDateRange timestamps to Date objects
+  if (data.PrintDateRange) {
+    data.PrintDateRange = {
+      from: data.PrintDateRange.from ? data.PrintDateRange.from.toDate() : undefined,
+      to: data.PrintDateRange.to ? data.PrintDateRange.to.toDate() : undefined,
+    };
+  }
+
+  manualOrders.push({
+    ...data,
+    OrderNumber: docSnap.id,
+    isManual: true,
+  });
+});
 
   // Fetch external order overrides from Firebase
   const overridesSnapshot = await firestore.collection('externalOrderOverrides').get();
