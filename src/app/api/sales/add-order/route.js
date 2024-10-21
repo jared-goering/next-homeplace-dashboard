@@ -5,6 +5,7 @@ import { doc, setDoc } from 'firebase/firestore';
 export async function POST(request) {
   try {
     const newOrder = await request.json();
+    console.log('New Order:', newOrder); // Add this to debug
     const { OrderNumber, Customer, OrderDate, Status, InvoiceAmount } = newOrder;
 
     if (!OrderNumber || !Customer || !OrderDate || !Status) {
