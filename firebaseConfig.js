@@ -2,6 +2,7 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
+
 console.log('Firebase initialized 0');
 // Firebase configuration object
 const firebaseConfig = {
@@ -10,7 +11,9 @@ const firebaseConfig = {
   projectId: "homeplace-dashboard",
   storageBucket: "homeplace-dashboard.appspot.com",
   messagingSenderId: "360689540801",
-  appId: "1:360689540801:web:862a365164625794e6fe40"
+  appId: "1:360689540801:web:862a365164625794e6fe40",
+  privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
 };
 
 // Initialize Firebase only if it hasn't been initialized yet
@@ -20,5 +23,6 @@ console.log('Firebase initialized 1');
 // Initialize Firestore
 const firestore = getFirestore(app);
 console.log('Firestore initialized');
+
 
 export { firestore };

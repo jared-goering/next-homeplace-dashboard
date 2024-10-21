@@ -1,8 +1,10 @@
 // app/api/sales/route.js
 
 import axios from 'axios';
-import { firestore } from '../../../../firebaseConfig';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+// import { firestore } from '../../../../firebaseConfig';
+// import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { firestoreAdmin as firestore } from '../../../../firebaseAdmin'; // Use Admin SDK
+
 
 export async function GET(req) {
   try {
@@ -28,50 +30,56 @@ if (!accountId || !applicationKey) {
 
     const salesData = response.data; // Assuming response.data has a property 'SaleList'
 
-    // Fetch manual orders from Firebase
-    const manualOrdersCollection = collection(firestore, 'manualOrders');
-    const manualOrdersSnapshot = await getDocs(manualOrdersCollection);
-    const manualOrders = [];
+ // Fetch manual orders from Firebase using Admin SDK
+ const manualOrdersSnapshot = await firestore.collection('manualOrders').get();
+ const manualOrders = [];
 
-    manualOrdersSnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      manualOrders.push({
-        ...data,
-        OrderNumber: docSnap.id,
-        isManual: true,
+ manualOrdersSnapshot.forEach((docSnap) => {
+   const data = docSnap.data();
+   manualOrders.push({
+     ...data,
+     OrderNumber: docSnap.id,
+     isManual: true,
+   });
+ });
+
+  // Fetch external order overrides from Firebase
+  const overridesSnapshot = await firestore.collection('externalOrderOverrides').get();
+  const externalOrderOverrides = {};
+
+  overridesSnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+
+    // Convert PrintDateRange timestamps to Date objects
+    if (data.PrintDateRange) {
+      data.PrintDateRange = {
+        from: data.PrintDateRange.from ? data.PrintDateRange.from.toDate() : undefined,
+        to: data.PrintDateRange.to ? data.PrintDateRange.to.toDate() : undefined,
+      };
+    }
+
+    const orderNumber = docSnap.id;
+    externalOrderOverrides[orderNumber] = data;
+  });
+
+
+      // Merge overrides with external API sales data
+      const salesWithOverrides = salesData.SaleList.map((sale) => {
+        const orderNumber = sale.OrderNumber;
+        const override = externalOrderOverrides[orderNumber];
+  
+        if (override && override.PrintDateRange) {
+          // Only override the PrintDateRange field
+          return {
+            ...sale,
+            PrintDateRange: override.PrintDateRange,
+          };
+        }
+        return sale;
       });
-    });
+    
 
-    // Fetch external order overrides from Firebase
-    const overridesCollection = collection(firestore, 'externalOrderOverrides');
-    const overridesSnapshot = await getDocs(overridesCollection);
-    const externalOrderOverrides = {};
-
-    overridesSnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-
-      // Convert PrintDateRange timestamps to Date objects
-      if (data.PrintDateRange) {
-        data.PrintDateRange = {
-          from: data.PrintDateRange.from.toDate(),
-          to: data.PrintDateRange.to ? data.PrintDateRange.to.toDate() : undefined,
-        };
-      }
-
-      const orderNumber = docSnap.id;
-      externalOrderOverrides[orderNumber] = data;
-    });
-
-
-    // Merge overrides with external API sales data
-    const salesWithOverrides = salesData.SaleList.map((sale) => {
-      const orderNumber = sale.OrderNumber;
-      const override = externalOrderOverrides[orderNumber];
-      if (override) {
-        return { ...sale, ...override };
-      }
-      return sale;
-    });
+    
 
     // Combine all sales
     const allSales = [...salesWithOverrides, ...manualOrders];

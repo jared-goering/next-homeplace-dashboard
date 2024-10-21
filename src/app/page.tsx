@@ -139,6 +139,16 @@ export default function Home() {
             `Duplicate order found: ${sale.OrderNumber}. Keeping manual sale.`
           );
         }
+        // Add manual sales, merging with existing entries if necessary
+        manualSales.forEach((manualSale) => {
+          if (salesMap.has(manualSale.OrderNumber)) {
+            // Merge manual sale data with existing sale
+            const existingSale = salesMap.get(manualSale.OrderNumber);
+            salesMap.set(manualSale.OrderNumber, { ...existingSale, ...manualSale });
+          } else {
+            salesMap.set(manualSale.OrderNumber, manualSale);
+          }
+        });
       });
   
       // Convert the map back to an array
@@ -159,14 +169,16 @@ export default function Home() {
   
   
 
-  // In your Home component
-// In your Home component
-const handleDateChange = useCallback(
+ // In your Home component
+ const handleDateChange = useCallback(
   async (
     orderNumber: string,
-    dateRange: DateRange | undefined,
-    isManual: boolean
+    dateRange: DateRange | undefined
   ): Promise<void> => {
+    // Determine if the order is manual
+    const sale = sales.find((sale) => sale.OrderNumber === orderNumber);
+    const isManual = sale ? sale.isManual : false;
+
     // Update the state
     setSales((prevSales) =>
       prevSales.map((sale: Sale) => {
@@ -186,21 +198,17 @@ const handleDateChange = useCallback(
           }
         : null;
 
-    if (isManual) {
-      try {
-        await axios.post("/api/sales/update-print-date", {
-          orderNumber,
-          printDateRange,
-          isManual, // Include isManual flag
-        });
-      } catch (error) {
-        console.error("Error updating print date range:", error);
-      }
-    } else {
-      // For imported sales, store the PrintDateRange locally or handle accordingly
+    try {
+      await axios.post("/api/sales/update-print-date", {
+        orderNumber,
+        printDateRange,
+        isManual,
+      });
+    } catch (error) {
+      console.error("Error updating print date range:", error);
     }
   },
-  [setSales]
+  [setSales, sales]
 );
 
   
