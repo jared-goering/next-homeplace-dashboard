@@ -75,8 +75,14 @@ export default function Home() {
     console.log("Fetching sales data...");
     try {
       // Fetch manual sales data
-      const response = await axios.get("/api/sales");
-      console.log("Response data:", response.data);
+      const response = await axios.get('/api/sales', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
+        console.log("Response data:", response.data);
   
       let manualSales: Sale[] = [];
       if (response.data && Array.isArray(response.data.SaleList)) {
