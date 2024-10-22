@@ -9,6 +9,8 @@ import { Sale } from "./interfaces"; // Adjust the path as necessary
 import AddOrderForm from "../components/AddOrderForm"; // Import the new component
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import fetchNoCache from '@/lib/fetchNoCache';
+
 
 // Define the RawSale interface
 interface RawSale {
@@ -75,7 +77,7 @@ export default function Home() {
     console.log("Fetching sales data...");
     try {
       // Fetch manual sales data
-      const response = await axios.get("/api/sales");
+      const response = await fetchNoCache("/api/sales");
       console.log("Response data:", response.data);
   
       let manualSales: Sale[] = [];

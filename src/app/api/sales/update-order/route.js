@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import { firestoreAdmin as firestore } from '../../../../../firebaseAdmin'; // Use Admin SDK
 
+
 export async function POST(request) {
     try {
       const { orderNumber, updatedData, isManual } = await request.json();
@@ -17,6 +18,7 @@ export async function POST(request) {
   
       // Update the order using set with merge
       await saleDocRef.set(updatedData, { merge: true });
+
   
       return NextResponse.json({ message: 'Order updated successfully' }, { status: 200 });
     } catch (error) {
