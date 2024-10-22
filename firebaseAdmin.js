@@ -18,4 +18,7 @@ if (!admin.apps.length) {
 
 const firestoreAdmin = admin.firestore();
 
+console.log('Firestore Admin initialized');
+console.log('Firestore Admin:', privateKey);
+
 export { firestoreAdmin };

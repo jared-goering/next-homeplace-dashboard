@@ -20,10 +20,10 @@ export async function POST(request) {
   
       return NextResponse.json({ message: 'Order updated successfully' }, { status: 200 });
     } catch (error) {
-      console.error('Error updating order:', error);
-      return NextResponse.json(
-        { error: 'Error updating order', details: error.message },
-        { status: 500 }
-      );
-    }
+        console.error('Error updating order:', error);
+        return NextResponse.json(
+          { error: 'Error updating order', details: error.message },
+          { status: 500 }
+        );
+      }
   }
