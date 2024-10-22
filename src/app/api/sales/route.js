@@ -1,5 +1,8 @@
 // app/api/sales/route.js
 
+export const fetchCache = 'force-no-store'; // Add this line at the top
+export const runtime = 'nodejs'; // Ensure the runtime is set to Node.js
+
 import axios from 'axios';
 import { firestoreAdmin as firestore } from '../../../../firebaseAdmin'; // Use Admin SDK
 import { Timestamp } from 'firebase-admin/firestore'; // Import Timestamp
@@ -93,9 +96,6 @@ const salesWithOverrides = salesData.SaleList.map((sale) => {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Vercel-CDN-Cache-Control': 'max-age=10',
-        'Cache-Control': 'max-age=10',
-        'CDN-Cache-Control': 'max-age=10',
       },
     });
   } catch (error) {

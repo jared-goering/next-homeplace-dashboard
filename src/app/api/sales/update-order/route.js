@@ -1,4 +1,6 @@
 // app/api/sales/update-order/route.js
+export const fetchCache = 'force-no-store'; // Add this line at the top
+export const runtime = 'nodejs'; // Ensure the runtime is set to Node.js
 
 import { NextResponse } from 'next/server';
 import { firestoreAdmin as firestore } from '../../../../../firebaseAdmin'; // Use Admin SDK
