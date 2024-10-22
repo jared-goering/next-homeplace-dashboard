@@ -50,6 +50,7 @@ export async function GET(req) {
       });
     });
 
+    
     // Fetch external order overrides from Firebase
     const overridesSnapshot = await firestore.collection('externalOrderOverrides').get();
     const externalOrderOverrides = {};
