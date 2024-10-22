@@ -50,7 +50,7 @@ export async function GET(req) {
       });
     });
 
-    
+
     // Fetch external order overrides from Firebase
     const overridesSnapshot = await firestore.collection('externalOrderOverrides').get();
     const externalOrderOverrides = {};
@@ -93,6 +93,7 @@ const salesWithOverrides = salesData.SaleList.map((sale) => {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
+        'Vercel-CDN-Cache-Control': 'max-age=10'
       },
     });
   } catch (error) {
