@@ -2,6 +2,7 @@
 
 export const fetchCache = 'force-no-store'; // Add this line at the top
 export const runtime = 'nodejs'; // Ensure the runtime is set to Node.js
+export const dynamic = "force-dynamic"
 
 import axios from 'axios';
 import { firestoreAdmin as firestore } from '../../../../firebaseAdmin'; // Use Admin SDK

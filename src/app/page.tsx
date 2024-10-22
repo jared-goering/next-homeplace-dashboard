@@ -76,13 +76,18 @@ export default function Home() {
     console.log("Fetching sales data...");
     try {
       // Fetch manual sales data
-      const response = await axios.get('/api/sales', {
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
-      });
+    // Generate a unique timestamp
+    const timestamp = Date.now(); // Or use Date.parse(new Date().toString());
+
+    // Make the API request with the unique timestamp parameter
+    const response = await axios.get(`/api/sales?cacheBust=${timestamp}`, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
+
         console.log("Response data:", response.data);
   
       let manualSales: Sale[] = [];
