@@ -96,6 +96,8 @@ const salesWithOverrides = salesData.SaleList.map((sale) => {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 's-maxage=10', 
+        'Vercel-CDN-Cache-Control': 'max-age=10'
       },
     });
   } catch (error) {

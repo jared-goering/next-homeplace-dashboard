@@ -1,4 +1,5 @@
 "use client";
+export const fetchCache = 'force-no-store'; // Add this line at the top
 
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
