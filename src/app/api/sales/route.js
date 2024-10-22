@@ -92,7 +92,6 @@ const salesWithOverrides = salesData.SaleList.map((sale) => {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
       },
     });
   } catch (error) {
