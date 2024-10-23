@@ -1,5 +1,4 @@
 "use client";
-export const fetchCache = 'force-no-store'; // Add this line at the top
 
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
@@ -9,7 +8,14 @@ import { DateRange } from "react-day-picker";
 import { Sale } from "./interfaces"; // Adjust the path as necessary
 import AddOrderForm from "../components/AddOrderForm"; // Import the new component
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 // Define the RawSale interface
 interface RawSale {
@@ -18,12 +24,11 @@ interface RawSale {
   OrderDate: string; // ISO date string
   Status: string;
   InvoiceAmount: number;
-  // Include any other properties returned by the API
   PrintDateRange?: {
     from: string;
     to?: string;
   };
-  isManual?: boolean; // Include isManual in RawSale
+  isManual?: boolean;
 }
 
 interface NewOrder {
@@ -35,78 +40,59 @@ interface NewOrder {
   PrintDateRange?: DateRange;
 }
 
-interface Status {
-  id: string;
-  name: string;
-}
-
-interface Contact {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-}
-
-interface Timestamps {
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Order {
-  id: string;
-  visualId: string;
-  status: Status;
-  contact: Contact;
-  total: number;
-  timestamps: Timestamps;
-  customerDueAt?: string;
-}
-
 
 export default function Home() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [isModalOpen, setIsModalOpen] = useState(false); // State for controlling the modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchSales();
   }, []);
-
   const fetchSales = async () => {
     console.log("Fetching sales data...");
     try {
-      // Fetch manual sales data
-    // Generate a unique timestamp
-    const timestamp = Date.now(); // Or use Date.parse(new Date().toString());
-
-    // Make the API request with the unique timestamp parameter
-    const response = await axios.get(`/api/sales?cacheBust=${timestamp}`, {
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
-    });
-
-        console.log("Response data:", response.data);
+      // Generate a unique timestamp to bypass caching
+      const timestamp = Date.now();
   
-      let manualSales: Sale[] = [];
+      // Fetch all sales data from the server
+      const response = await axios.get(`/api/sales?cacheBust=${timestamp}`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
+  
+      console.log("Response data:", response.data);
+  
+      let salesData: Sale[] = [];
       if (response.data && Array.isArray(response.data.SaleList)) {
         const rawSales: RawSale[] = response.data.SaleList;
   
         // Process the sales to add a 'group' field and ensure correct types
-        manualSales = rawSales.map((sale: RawSale) => {
+        salesData = rawSales.map((sale: RawSale) => {
           console.log("Processing sale:", sale);
   
           const customerName = sale.Customer || "";
+          console.log("Customer name:", sale.OrderNumber);
           const isMurdochs = customerName.includes("Murdoch");
+          const isPrintavo = sale.OrderNumber.includes("Printavo");
   
           const date = sale.OrderDate
             ? sale.OrderDate.substring(0, 10)
             : "Unknown Date";
-          const group = isMurdochs
-            ? `Murdochs - ${date}`
-            : `NoGroup-${sale.OrderNumber}`;
+  
+          let group;
+  
+          if (isMurdochs) {
+            group = `Murdochs - ${date}`;
+          } else if (isPrintavo) {
+            group = `Printavo`;
+          } else {
+            group = `NoGroup-${sale.OrderNumber}`;
+          }
+          // console.log("Group:", group);
   
           // Ensure PrintDateRange dates are JavaScript Date objects
           let PrintDateRange = undefined;
@@ -119,58 +105,18 @@ export default function Home() {
             };
           }
   
-              // Keep the isManual flag as is, default to false if undefined
-        const isManual = sale.isManual || false;
-
-        return { ...sale, group, PrintDateRange, isManual };
+          // Keep the isManual flag as is, default to false if undefined
+          const isManual = sale.isManual || false;
+  
+          return { ...sale, group, PrintDateRange, isManual };
         });
       } else {
         console.error("Unexpected data format:", response.data);
-        manualSales = [];
+        salesData = [];
       }
   
-      // Fetch open orders from Printavo
-      const openOrdersData: Order[] = await fetchOpenOrders();
-      console.log("Open Orders Data:", openOrdersData);
-  
-      // Transform open orders into Sale objects
-      const transformedOpenOrders: Sale[] = openOrdersData.map(
-        transformOrderToSale
-      );
-  
-      // Build a Map to track orders and prevent duplicates
-      const salesMap = new Map();
-  
-      // Add manual sales to the map
-      manualSales.forEach((sale) => {
-        salesMap.set(sale.OrderNumber, sale);
-      });
-  
-      // Add imported sales, skipping duplicates
-      transformedOpenOrders.forEach((sale) => {
-        if (!salesMap.has(sale.OrderNumber)) {
-          salesMap.set(sale.OrderNumber, sale);
-        } else {
-          console.log(
-            `Duplicate order found: ${sale.OrderNumber}. Keeping manual sale.`
-          );
-        }
-        // Add manual sales, merging with existing entries if necessary
-        manualSales.forEach((manualSale) => {
-          if (salesMap.has(manualSale.OrderNumber)) {
-            // Merge manual sale data with existing sale
-            const existingSale = salesMap.get(manualSale.OrderNumber);
-            salesMap.set(manualSale.OrderNumber, { ...existingSale, ...manualSale });
-          } else {
-            salesMap.set(manualSale.OrderNumber, manualSale);
-          }
-        });
-      });
-  
-      // Convert the map back to an array
-      const combinedSales = Array.from(salesMap.values());
-  
-      setSales(combinedSales);
+      // Set the sales state
+      setSales(salesData);
       setLoading(false);
     } catch (error) {
       if (error instanceof Error) {
@@ -182,16 +128,35 @@ export default function Home() {
     }
   };
   
-  
+
+  // Updated handleFieldChange function
+  const handleFieldChange = async (
+    orderNumber: string,
+    updatedSale: Sale
+  ) => {
+    // Update the state with the entire updated sale
+    setSales((prevSales) =>
+      prevSales.map((sale) =>
+        sale.OrderNumber === orderNumber ? updatedSale : sale
+      )
+    );
+
+    try {
+      await axios.post("/api/sales/update-order", {
+        orderNumber,
+        updatedData: updatedSale,
+      });
+    } catch (error) {
+      console.error("Error updating order:", error);
+    }
+  };
+
+  // Updated handleDateChange function
   const handleDateChange = useCallback(
     async (
       orderNumber: string,
       dateRange: DateRange | undefined
     ): Promise<void> => {
-      // Determine if the order is manual
-      const sale = sales.find((sale) => sale.OrderNumber === orderNumber);
-      const isManual = sale ? sale.isManual : false;
-  
       // Update the state
       setSales((prevSales) =>
         prevSales.map((sale: Sale) => {
@@ -201,11 +166,11 @@ export default function Home() {
           return sale;
         })
       );
-  
+
       // Prepare data for the API
       let fromDate = dateRange && dateRange.from ? new Date(dateRange.from) : null;
       let toDate = dateRange && dateRange.to ? new Date(dateRange.to) : null;
-  
+
       // If only one date is selected, set both fromDate and toDate to that date
       if (!fromDate && toDate) {
         fromDate = toDate;
@@ -213,15 +178,15 @@ export default function Home() {
       if (fromDate && !toDate) {
         toDate = fromDate;
       }
-  
+
       // Ensure dates are valid
       fromDate = fromDate && !isNaN(fromDate.getTime()) ? fromDate : null;
       toDate = toDate && !isNaN(toDate.getTime()) ? toDate : null;
-  
+
       // Log dates for debugging
       console.log("fromDate:", fromDate);
       console.log("toDate:", toDate);
-  
+
       const printDateRange =
         fromDate && toDate
           ? {
@@ -229,14 +194,14 @@ export default function Home() {
               to: toDate.toISOString(),
             }
           : null;
-  
+
       console.log("printDateRange:", printDateRange);
-  
+
       try {
-        await axios.post("/api/sales/update-print-date", {
+        // Update the order in the backend
+        await axios.post("/api/sales/update-order", {
           orderNumber,
-          printDateRange,
-          isManual,
+          updatedData: { PrintDateRange: printDateRange },
         });
       } catch (error) {
         console.error("Error updating print date range:", error);
@@ -244,8 +209,6 @@ export default function Home() {
     },
     [setSales, sales]
   );
-  
-  
 
   const handleAddOrder = async (newOrder: NewOrder) => {
     try {
@@ -265,133 +228,6 @@ export default function Home() {
       }
       // Optionally, display an error message to the user
     }
-  };
-
-// In Home.tsx
-const handleFieldChange = async (
-  orderNumber: string,
-  updatedSale: Sale
-) => {
-  // Update the state with the entire updated sale
-  setSales((prevSales) =>
-    prevSales.map((sale) =>
-      sale.OrderNumber === orderNumber ? updatedSale : sale
-    )
-  );
-
-  const isManual = updatedSale.isManual || false;
-
-  try {
-    await axios.post("/api/sales/update-order", {
-      orderNumber,
-      updatedData: updatedSale,
-      isManual,
-    });
-  } catch (error) {
-    console.error("Error updating order:", error);
-  }
-};
-
-
-
-  const fetchOpenOrders = async (): Promise<Order[]> => {
-    const statusIds = [
-      "380067",
-      "454197",
-      "380072",
-      "380073",
-      "380068",
-      "380069",
-      "380070",
-      "380071",
-    ];
-  
-    const query = `
-      query GetOpenOrders($statusIds: [ID!]!) {
-        orders(statusIds: $statusIds) {
-          nodes {
-            __typename
-            ... on Quote {
-              id
-              visualId
-              status {
-                id
-                name
-              }
-              contact {
-                id
-                email
-                firstName
-                lastName
-              }
-              total
-              timestamps {
-                createdAt
-                updatedAt
-              }
-              customerDueAt
-            }
-            ... on Invoice {
-              id
-              visualId
-              status {
-                id
-                name
-              }
-              contact {
-                id
-                email
-                firstName
-                lastName
-              }
-              total
-              timestamps {
-                createdAt
-                updatedAt
-              }
-              customerDueAt
-            }
-          }
-        }
-      }
-    `;
-  
-    const variables = {
-      statusIds,
-    };
-  
-    try {
-      const response = await axios.post("/api/printavo", { query, variables });
-      const data = response.data;
-  
-      if (data.errors) {
-        console.error("GraphQL errors:", data.errors);
-        return [];
-      } else {
-        return data.data.orders.nodes;
-      }
-    } catch (error) {
-      console.error("Error fetching open orders:", error);
-      return [];
-    }
-  };
-
-  const transformOrderToSale = (order: Order): Sale => {
-    return {
-      OrderNumber: `Printavo-${order.visualId}`, // Prefix to ensure uniqueness
-      Customer: `${order.contact.firstName} ${order.contact.lastName}`.trim(),
-      OrderDate: order.timestamps.createdAt,
-      Status: order.status.name,
-      PrintDateRange: order.customerDueAt
-        ? {
-            from: new Date(order.customerDueAt),
-            to: new Date(order.customerDueAt),
-          }
-        : undefined,
-      InvoiceAmount: order.total,
-      group: `Printavo`, // Or any grouping logic you prefer
-      isManual: false, // Indicate that this is an imported order
-    };
   };
 
   if (loading) {
@@ -427,17 +263,16 @@ const handleFieldChange = async (
 
       <div className="flex flex-col md:flex-row">
         <div className="md:w-2/3 md:pr-4">
-        <SalesList
-          sales={sales}
-          setSales={setSales}
-          handleDateChange={handleDateChange}
-          handleFieldChange={handleFieldChange}
-        />
+          <SalesList
+            sales={sales}
+            setSales={setSales}
+            handleDateChange={handleDateChange}
+            handleFieldChange={handleFieldChange}
+          />
         </div>
         <div className="md:w-1/3 md:prl-4">
           <SalesCalendar sales={sales} />
         </div>
-
       </div>
     </div>
   );

@@ -124,40 +124,59 @@ const handleFieldChangeLocal = useCallback(
     }
   };
 
+// Mapping of group prefixes to labels
+const groupPrefixMap = {
+    'Murdochs - ': 'Murdochs',
+    'Printavo - ': 'Printavo',
+    'NoGroup-': 'No Group',
+  } as const;
+  
+  type GroupPrefix = keyof typeof groupPrefixMap;
 
 
   const columns: ColumnDef<Sale, any>[] = useMemo(() => [
     {
-      accessorKey: "group",
-      header: "Group",
-      enableGrouping: true,
-      cell: ({ cell, row, getValue }: CellContext<Sale, string>) => {
-        if (row.getIsGrouped()) {
-          if (row.subRows.length > 1) {
-            const groupValue = getValue<string>();
-            let groupLabel = "";
-            if (groupValue.startsWith("Murdochs - ")) {
-              const datePart = groupValue.replace("Murdochs - ", "");
-              groupLabel = `Murdochs (${formatDate(datePart)})`;
-            } else {
-              groupLabel = groupValue;
+        accessorKey: "group",
+        header: "Group",
+        enableGrouping: true,
+        cell: ({ cell, row, getValue }: CellContext<Sale, string>) => {
+          if (row.getIsGrouped()) {
+            if (row.subRows.length > 1) {
+              const groupValue = getValue<string>();
+              let groupLabel = "Uncategorized";
+    
+              // Iterate over the mapping to find the matching prefix
+              for (const prefix in groupPrefixMap) {
+                if (groupPrefixMap.hasOwnProperty(prefix)) {
+                  const typedPrefix = prefix as GroupPrefix; // Assert prefix type
+                  if (groupValue.startsWith(typedPrefix)) {
+                    const identifier = groupValue.replace(typedPrefix, "");
+                    // Check if the prefix includes a date
+                    if (typedPrefix.endsWith(' - ')) {
+                      groupLabel = `${groupPrefixMap[typedPrefix]} (${formatDate(identifier)})`;
+                    } else {
+                      groupLabel = groupPrefixMap[typedPrefix];
+                    }
+                    break;
+                  }
+                }
+              }
+    
+              return (
+                <span
+                  onClick={row.getToggleExpandedHandler()}
+                  style={{ cursor: "pointer" }}
+                >
+                  {row.getIsExpanded() ? "➖" : "➕"} {groupLabel} (
+                  {row.subRows.length})
+                </span>
+              );
             }
-
-            return (
-              <span
-                onClick={row.getToggleExpandedHandler()}
-                style={{ cursor: "pointer" }}
-              >
-                {row.getIsExpanded() ? "➖" : "➕"} {groupLabel} (
-                {row.subRows.length})
-              </span>
-            );
+            return null;
           }
           return null;
-        }
-        return null;
+        },
       },
-    },
     {
         accessorKey: "OrderNumber",
         header: "Order #",

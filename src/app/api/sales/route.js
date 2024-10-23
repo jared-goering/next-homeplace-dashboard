@@ -1,118 +1,286 @@
 // app/api/sales/route.js
 
-export const fetchCache = 'force-no-store'; // Add this line at the top
-export const runtime = 'nodejs'; // Ensure the runtime is set to Node.js
-export const dynamic = "force-dynamic"
+export const runtime = 'nodejs';
 
 import axios from 'axios';
-import { firestoreAdmin as firestore } from '../../../../firebaseAdmin'; // Use Admin SDK
-import { Timestamp } from 'firebase-admin/firestore'; // Import Timestamp
+import { firestoreAdmin as firestore } from '../../../../firebaseAdmin';
+import admin from 'firebase-admin';
 
 export async function GET(req) {
   try {
-    const limit = 500; // Max limit
-    const page = 1;
+    // Fetch latest external orders from Cin7 and Printavo
+    const externalOrdersCin7 = await fetchExternalOrdersCin7();
+    const externalOrdersPrintavo = await fetchExternalOrdersPrintavo();
+    const externalOrders = [...externalOrdersCin7, ...externalOrdersPrintavo];
 
-    const accountId = process.env.CIN7_ACCOUNT_ID;
-    const applicationKey = process.env.CIN7_APPLICATION_KEY;
+    // Update Firebase with the latest external orders
+    await updateExternalOrdersInFirebase(externalOrders);
 
-    if (!accountId || !applicationKey) {
-      throw new Error('Missing CIN7 API credentials');
-    }
-
-    // Fetch sales data from the external API
-    const response = await axios.get('https://inventory.dearsystems.com/ExternalApi/v2/saleList?STATUS=PACKED', {
-      params: { Page: page, Limit: limit },
-      headers: {
-        'api-auth-accountid': process.env.CIN7_ACCOUNT_ID,
-        'api-auth-applicationkey': process.env.CIN7_APPLICATION_KEY,
-        'Accept': 'application/json',
-      },
-    });
-
-    const salesData = response.data; // Assuming response.data has a property 'SaleList'
-
-    // Fetch manual orders from Firebase using Admin SDK
-    const manualOrdersSnapshot = await firestore.collection('manualOrders').get();
-    const manualOrders = [];
-
-    manualOrdersSnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-
-      // Convert PrintDateRange fields to Date objects
-      if (data.PrintDateRange) {
-        data.PrintDateRange = {
-          from: convertToDate(data.PrintDateRange.from),
-          to: convertToDate(data.PrintDateRange.to),
-        };
-      }
-
-      manualOrders.push({
-        ...data,
-        OrderNumber: docSnap.id,
-        isManual: true,
-      });
-    });
-
-
-    // Fetch external order overrides from Firebase
-    const overridesSnapshot = await firestore.collection('externalOrderOverrides').get();
-    const externalOrderOverrides = {};
-
-    overridesSnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-
-      // Convert PrintDateRange fields to Date objects
-      if (data.PrintDateRange) {
-        data.PrintDateRange = {
-          from: convertToDate(data.PrintDateRange.from),
-          to: convertToDate(data.PrintDateRange.to),
-        };
-      }
-
-      const orderNumber = docSnap.id;
-      externalOrderOverrides[orderNumber] = data;
-    });
-
- // Merge overrides with external API sales data
-const salesWithOverrides = salesData.SaleList.map((sale) => {
-  const orderNumber = sale.OrderNumber;
-  const override = externalOrderOverrides[orderNumber];
-
-  if (override) {
-    // Merge all fields from the override into the sale
-    return {
-      ...sale,
-      ...override, // Overrides any matching fields with values from override
-    };
-  }
-  return sale;
-});
-
-    // Combine all sales
-    const allSales = [...salesWithOverrides, ...manualOrders];
+    // Fetch all active orders (including manual orders) from Firebase
+    const allActiveOrders = await fetchAllActiveOrdersFromFirebase();
 
     // Return the combined sales data
-    return new Response(JSON.stringify({ SaleList: allSales }), {
+    return new Response(JSON.stringify({ SaleList: allActiveOrders }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 's-maxage=10', 
-        'Vercel-CDN-Cache-Control': 'max-age=10'
+        'Cache-Control': 'no-store', // Prevent caching
       },
     });
   } catch (error) {
     console.error('Error fetching sales data:', error);
     return new Response(
-      JSON.stringify({ error: 'Error fetching sales data' }),
+      JSON.stringify({ error: 'Error fetching sales data', details: error.message }),
       { status: 500 }
     );
   }
 }
 
+// Helper function to fetch external orders from Cin7 (Dear Systems)
+async function fetchExternalOrdersCin7() {
+  const limit = 500; // Max limit
+  const page = 1;
+
+  const accountId = process.env.CIN7_ACCOUNT_ID;
+  const applicationKey = process.env.CIN7_APPLICATION_KEY;
+
+  if (!accountId || !applicationKey) {
+    throw new Error('Missing CIN7 API credentials');
+  }
+
+  // Fetch sales data from the external API
+  const response = await axios.get('https://inventory.dearsystems.com/ExternalApi/v2/saleList?STATUS=PACKED', {
+    params: { Page: page, Limit: limit },
+    headers: {
+      'api-auth-accountid': accountId,
+      'api-auth-applicationkey': applicationKey,
+      'Accept': 'application/json',
+    },
+  });
+
+  const salesData = response.data; // Assuming response.data has a property 'SaleList'
+  const externalOrders = salesData.SaleList.map((sale) => {
+    return {
+      ...sale,
+      OrderNumber: sale.OrderNumber,
+      isManual: false,
+      isActive: true,
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    };
+  });
+
+  return externalOrders;
+}
+
+// **New** Helper function to fetch external orders from Printavo
+async function fetchExternalOrdersPrintavo() {
+  const statusIds = [
+    "380067",
+    "454197",
+    "380072",
+    "380073",
+    "380068",
+    "380069",
+    "380070",
+    "380071",
+  ];
+
+  const query = `
+    query GetOpenOrders($statusIds: [ID!]!) {
+      orders(statusIds: $statusIds) {
+        nodes {
+          __typename
+          ... on Quote {
+            id
+            visualId
+            status {
+              id
+              name
+            }
+            contact {
+              id
+              email
+              firstName
+              lastName
+            }
+            total
+            timestamps {
+              createdAt
+              updatedAt
+            }
+            customerDueAt
+          }
+          ... on Invoice {
+            id
+            visualId
+            status {
+              id
+              name
+            }
+            contact {
+              id
+              email
+              firstName
+              lastName
+            }
+            total
+            timestamps {
+              createdAt
+              updatedAt
+            }
+            customerDueAt
+          }
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    statusIds,
+  };
+
+  const printavoEmail = process.env.NEXT_PUBLIC_PRINTAVO_EMAIL;
+  const printavoToken = process.env.NEXT_PUBLIC_PRINTAVO_TOKEN;
+
+  if (!printavoEmail || !printavoToken) {
+    throw new Error('Missing Printavo API credentials');
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    email: printavoEmail,
+    token: printavoToken,
+  };
+
+  try {
+    const response = await axios.post(
+      'https://www.printavo.com/api/v2',
+      { query, variables },
+      { headers }
+    );
+
+    const data = response.data;
+
+    if (data.errors) {
+      console.error("Printavo GraphQL errors:", data.errors);
+      return [];
+    } else {
+      const orders = data.data.orders.nodes;
+      return orders.map(transformOrderToSale);
+    }
+  } catch (error) {
+    console.error("Error fetching open orders from Printavo:", error);
+    return [];
+  }
+}
+
+
+// Helper function to transform Printavo orders into the Sale format
+function transformOrderToSale(order) {
+  return {
+    OrderNumber: `Printavo-${order.visualId}` || 'Unknown Order Number',
+    Customer: `${order.contact.firstName || ''} ${order.contact.lastName || ''}`.trim() || 'Unknown Customer',
+    OrderDate: order.timestamps?.createdAt || null,
+    Status: order.status?.name || 'Unknown Status',
+    PrintDateRange: order.customerDueAt
+      ? {
+          from: order.customerDueAt || null,
+          to: order.customerDueAt || null,
+        }
+      : null,
+    InvoiceAmount: order.total || 0,
+    isManual: false,
+    isActive: true,
+    lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+  };
+}
+// Helper function to remove undefined values from an object
+function removeUndefinedValues(obj) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined)
+  );
+}
+
+
+// Helper function to update external orders in Firebase
+async function updateExternalOrdersInFirebase(externalOrders) {
+  const batch = firestore.batch();
+
+  try {
+    // Save or update external orders in Firebase
+    externalOrders.forEach((order) => {
+      const sanitizedOrder = removeUndefinedValues(order);
+      const orderRef = firestore.collection('orders').doc(order.OrderNumber);
+      batch.set(orderRef, sanitizedOrder, { merge: true });
+    });
+
+    // Commit the batch write
+    await batch.commit();
+
+    // Identify and mark inactive external orders
+    await markInactiveExternalOrders(externalOrders);
+  } catch (error) {
+    console.error('Error updating external orders in Firebase:', error);
+  }
+}
+
+
+// Helper function to mark inactive external orders
+async function markInactiveExternalOrders(latestExternalOrders) {
+  // Fetch existing external orders from Firebase
+  const existingOrdersSnapshot = await firestore.collection('orders')
+    .where('isManual', '==', false)
+    .get();
+
+  const latestOrderNumbers = new Set(latestExternalOrders.map(order => order.OrderNumber));
+  const inactiveBatch = firestore.batch();
+
+  existingOrdersSnapshot.forEach((doc) => {
+    const orderNumber = doc.id;
+    if (!latestOrderNumbers.has(orderNumber)) {
+      const orderRef = firestore.collection('orders').doc(orderNumber);
+      inactiveBatch.update(orderRef, {
+        isActive: false,
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  });
+
+  // Commit the batch update
+  await inactiveBatch.commit();
+}
+
+// Helper function to fetch all active orders from Firebase
+async function fetchAllActiveOrdersFromFirebase() {
+  const activeOrdersSnapshot = await firestore.collection('orders')
+    .where('isActive', '==', true)
+    .get();
+
+  const activeOrders = [];
+
+  activeOrdersSnapshot.forEach((doc) => {
+    const data = doc.data();
+
+    // Convert PrintDateRange fields to Date objects
+    if (data.PrintDateRange) {
+      data.PrintDateRange = {
+        from: convertToDate(data.PrintDateRange.from),
+        to: convertToDate(data.PrintDateRange.to),
+      };
+    }
+
+    activeOrders.push({
+      ...data,
+      OrderNumber: doc.id,
+    });
+  });
+
+  return activeOrders;
+}
+
 // Helper function to convert various types to Date objects
 function convertToDate(value) {
-  if (value instanceof Timestamp) {
+  if (value instanceof admin.firestore.Timestamp) {
     // Firestore Timestamp
     return value.toDate();
   } else if (value instanceof Date) {

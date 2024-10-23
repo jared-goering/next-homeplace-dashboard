@@ -1,33 +1,33 @@
 // app/api/sales/update-order/route.js
-export const fetchCache = 'force-no-store'; // Add this line at the top
-export const runtime = 'nodejs'; // Ensure the runtime is set to Node.js
+
+export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { firestoreAdmin as firestore } from '../../../../../firebaseAdmin'; // Use Admin SDK
-
+import admin from 'firebase-admin'; // Import admin to use FieldValue
 
 export async function POST(request) {
-    try {
-      const { orderNumber, updatedData, isManual } = await request.json();
-  
-      if (!orderNumber || !updatedData) {
-        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-      }
-  
-      // Determine the collection based on whether the order is manual
-      const collectionName = isManual ? 'manualOrders' : 'externalOrderOverrides';
-      const saleDocRef = firestore.collection(collectionName).doc(orderNumber);
-  
-      // Update the order using set with merge
-      await saleDocRef.set(updatedData, { merge: true });
+  try {
+    const { orderNumber, updatedData } = await request.json();
 
-  
-      return NextResponse.json({ message: 'Order updated successfully' }, { status: 200 });
-    } catch (error) {
-        console.error('Error updating order:', error);
-        return NextResponse.json(
-          { error: 'Error updating order', details: error.message },
-          { status: 500 }
-        );
-      }
+    if (!orderNumber || !updatedData) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const orderDocRef = firestore.collection('orders').doc(orderNumber);
+
+    // Add the lastUpdated field to updatedData
+    updatedData.lastUpdated = admin.firestore.FieldValue.serverTimestamp();
+
+    // Update the order using set with merge
+    await orderDocRef.set(updatedData, { merge: true });
+
+    return NextResponse.json({ message: 'Order updated successfully' }, { status: 200 });
+  } catch (error) {
+    console.error('Error updating order:', error);
+    return NextResponse.json(
+      { error: 'Error updating order', details: error.message },
+      { status: 500 }
+    );
   }
+}

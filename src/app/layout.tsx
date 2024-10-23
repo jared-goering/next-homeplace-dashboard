@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Head from 'next/head';
+import DashboardSidebar from "@/components/sidebar"
+import { Inter } from "next/font/google"
 
+
+const inter = Inter({ subsets: ["latin"] })
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -26,14 +30,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <Head>
-        <title>Homeplace Dashboard</title>
-        {/* You can add more meta tags here if needed */}
-      </Head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className="flex">
+        {/* Sidebar */}
+        {/* <DashboardSidebar /> */}
+
+        {/* Main Content */}
+        <main className="flex-1 min-h-screen transition-all duration-300">
+          {children}
+        </main>
       </body>
     </html>
   );
