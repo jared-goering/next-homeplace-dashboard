@@ -11,4 +11,5 @@ export interface Sale {
   group?: string;
   PrintDateRange?: DateRange;
   isManual?: boolean; // Add this line
+  isActive: boolean; // Added property
 }

@@ -103,26 +103,28 @@ const handleFieldChangeLocal = useCallback(
     handleFieldChange,
   ]);
   
-
   const handleDelete = async (orderNumber: string) => {
     if (!confirm("Are you sure you want to delete this order?")) return;
-
+  
     const saleToDelete = sales.find(
       (sale) => sale.OrderNumber === orderNumber
     );
     if (!saleToDelete) return;
-
+  
     setSales((prevSales) =>
       prevSales.filter((sale) => sale.OrderNumber !== orderNumber)
     );
-
+  
     try {
+      // Send the prefixed order number to the API
       await axios.post("/api/sales/delete-order", { orderNumber });
     } catch (error) {
       console.error("Error deleting order:", error);
+      // Revert the state if deletion fails
       setSales((prevSales) => [...prevSales, saleToDelete]);
     }
   };
+  
 
 // Mapping of group prefixes to labels
 const groupPrefixMap = {
@@ -232,7 +234,6 @@ const groupPrefixMap = {
   return (
     <SalesListContext.Provider value={contextValue}>
       <div>
-        <h1 className="text-2xl font-bold mb-4">Sales Orders</h1>
         <DataTable columns={columns} data={sales} initialGrouping={['group']} />
       </div>
     </SalesListContext.Provider>

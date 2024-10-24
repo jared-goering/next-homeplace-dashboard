@@ -1,8 +1,10 @@
-// /app/api/sales/delete-order/route.js
+// app/api/sales/delete-order/route.js
+
+export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { firestore } from '../../../../../firebaseConfig'; // Adjust the path as necessary
-import { doc, deleteDoc } from 'firebase/firestore';
+import { firestoreAdmin as firestore } from '../../../../../firebaseAdmin'; // Use Admin SDK
+import admin from 'firebase-admin'; // Import admin to use FieldValue
 
 export async function POST(request) {
   try {
@@ -12,11 +14,11 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing order number' }, { status: 400 });
     }
 
-    // Reference to the document in manualOrders collection
-    const manualOrderDocRef = doc(firestore, 'manualOrders', orderNumber);
+    // Reference to the document in the 'orders' collection
+    const orderDocRef = firestore.collection('orders').doc(orderNumber);
 
     // Delete the document
-    await deleteDoc(manualOrderDocRef);
+    await orderDocRef.delete();
 
     return NextResponse.json({ message: 'Order deleted successfully' }, { status: 200 });
   } catch (error) {

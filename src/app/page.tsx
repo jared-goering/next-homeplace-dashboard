@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import SalesList from "@/components/SalesList";
 import SalesCalendar from "../components/SalesCalendar";
@@ -29,6 +29,7 @@ interface RawSale {
     to?: string;
   };
   isManual?: boolean;
+  isActive: boolean; // Add this line
 }
 
 interface NewOrder {
@@ -45,6 +46,8 @@ export default function Home() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+
 
   useEffect(() => {
     fetchSales();
@@ -212,23 +215,56 @@ export default function Home() {
 
   const handleAddOrder = async (newOrder: NewOrder) => {
     try {
-      // Send the new order to the server to be saved in Firebase
-      await axios.post("/api/sales/add-order", newOrder);
-
-      // Update the sales state to include the new order
-      setSales((prevSales) => [...prevSales, newOrder]);
-
+      // Determine 'group' for the new order
+      const customerName = newOrder.Customer || "";
+      const isMurdochs = customerName.includes("Murdoch");
+      const isPrintavo = newOrder.OrderNumber.includes("Printavo");
+      const date = newOrder.OrderDate ? newOrder.OrderDate.substring(0, 10) : "Unknown Date";
+  
+      let group;
+      if (isMurdochs) {
+        group = `Murdochs - ${date}`;
+      } else if (isPrintavo) {
+        group = `Printavo`;
+      } else {
+        group = `NoGroup-${newOrder.OrderNumber}`;
+      }
+  
+      // Create a new Sale object with all required fields
+      const newSale: Sale = {
+        ...newOrder,
+        isActive: true,
+        isManual: true,
+        group,
+      };
+  
+      // Send the new sale to the server to be saved in Firebase
+      await axios.post("/api/sales/add-order", newSale);
+  
+      // Update the sales state to include the new sale
+      setSales((prevSales) => [...prevSales, newSale]);
+  
       // Close the modal after adding the order
       setIsModalOpen(false);
     } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error adding new order:", error.message);
-      } else {
-        console.error("Error adding new order:", error);
-      }
+      console.error("Error adding new order:", error);
       // Optionally, display an error message to the user
     }
   };
+  
+
+
+  // Filter active and completed sales
+  const activeSales = useMemo(
+    () => sales.filter((sale) => sale.isActive),
+    [sales]
+  );
+
+  const completedSales = useMemo(
+    () => sales.filter((sale) => !sale.isActive),
+    [sales]
+  );
+
 
   if (loading) {
     return (
@@ -261,19 +297,75 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
+
+      {/* Tabs and SalesList Container */}
       <div className="flex flex-col md:flex-row">
+        {/* Tabs Section */}
         <div className="md:w-2/3 md:pr-4">
-          <SalesList
-            sales={sales}
-            setSales={setSales}
-            handleDateChange={handleDateChange}
-            handleFieldChange={handleFieldChange}
-          />
+        <h1 className="text-2xl font-bold mb-4">Sales Orders</h1>
+
+          {/* Tabs */}
+          <div className="flex">
+            <button
+              className={`flex-1 py-2 px-4 text-center rounded-t-md ${
+                activeTab === 'active'
+                  ? 'bg-white border-t border-l border-r border-gray-300'
+                  : 'bg-gray-200'
+              }`}
+              onClick={() => setActiveTab('active')}
+            >
+              Active Orders
+            </button>
+            <button
+              className={`flex-1 py-2 px-4 text-center rounded-t-md ${
+                activeTab === 'completed'
+                  ? 'bg-white border-t border-l border-r border-gray-300'
+                  : 'bg-gray-200'
+              }`}
+              onClick={() => setActiveTab('completed')}
+            >
+              Completed Orders
+            </button>
+          </div>
+
+          {/* SalesList */}
+          {activeTab === 'active' && (
+            <SalesList
+              key="active"
+              sales={activeSales}
+              setSales={setSales}
+              handleDateChange={handleDateChange}
+              handleFieldChange={handleFieldChange}
+            />
+          )}
+          {activeTab === 'completed' && (
+            <SalesList
+              key="completed"
+              sales={completedSales}
+              setSales={setSales}
+              handleDateChange={handleDateChange}
+              handleFieldChange={handleFieldChange}
+            />
+          )}
         </div>
         <div className="md:w-1/3 md:prl-4">
           <SalesCalendar sales={sales} />
         </div>
       </div>
+   
+      <style jsx>{`
+        .container {
+          max-width: 1200px;
+        }
+        @media (min-width: 768px) {
+          .tabs {
+            display: flex;
+          }
+          .tab {
+            flex: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }
