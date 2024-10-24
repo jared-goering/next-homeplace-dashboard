@@ -233,8 +233,15 @@ const groupPrefixMap = {
 
   return (
     <SalesListContext.Provider value={contextValue}>
-      <div>
-        <DataTable columns={columns} data={sales} initialGrouping={['group']} />
+      <div className="min-h-[400px] "> {/* Set a minimum height */}
+        {sales.length > 0 ? (
+          <DataTable columns={columns} data={sales} initialGrouping={['group']} />
+        ) : (
+          // Placeholder content when there are no sales
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">No orders found.</p>
+          </div>
+        )}
       </div>
     </SalesListContext.Provider>
   );

@@ -17,10 +17,10 @@ export async function GET(req) {
     await updateExternalOrdersInFirebase(externalOrders);
 
     // Fetch all active orders (including manual orders) from Firebase
-    const allActiveOrders = await fetchAllActiveOrdersFromFirebase();
+    const allOrders = await fetchAllOrdersFromFirebase();
 
     // Return the combined sales data
-    return new Response(JSON.stringify({ SaleList: allActiveOrders }), {
+    return new Response(JSON.stringify({ SaleList: allOrders }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -250,15 +250,14 @@ async function markInactiveExternalOrders(latestExternalOrders) {
   await inactiveBatch.commit();
 }
 
-// Helper function to fetch all active orders from Firebase
-async function fetchAllActiveOrdersFromFirebase() {
-  const activeOrdersSnapshot = await firestore.collection('orders')
-    .where('isActive', '==', true)
-    .get();
 
-  const activeOrders = [];
+// Helper function to fetch all orders from Firebase
+async function fetchAllOrdersFromFirebase() {
+  const ordersSnapshot = await firestore.collection('orders').get();
 
-  activeOrdersSnapshot.forEach((doc) => {
+  const orders = [];
+
+  ordersSnapshot.forEach((doc) => {
     const data = doc.data();
 
     // Convert PrintDateRange fields to Date objects
@@ -269,14 +268,15 @@ async function fetchAllActiveOrdersFromFirebase() {
       };
     }
 
-    activeOrders.push({
+    orders.push({
       ...data,
       OrderNumber: doc.id,
     });
   });
 
-  return activeOrders;
+  return orders;
 }
+
 
 // Helper function to convert various types to Date objects
 function convertToDate(value) {

@@ -5,26 +5,20 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, DollarSign, BarChart2, Menu, Home } from "lucide-react";
+import { CalendarClock, DollarSign, ChartArea, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
   SidebarTrigger,
-  SidebarProvider,
   useSidebar,
+  SidebarGroupLabel,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible"; // Ensure you import Collapsible components
 
 const MobileTrigger = () => {
   const { isMobile } = useSidebar();
@@ -44,90 +38,65 @@ const MobileTrigger = () => {
 
 const DashboardSidebarContent = () => {
   const pathname = usePathname();
+  const { open } = useSidebar();
 
   return (
     <>
-      <SidebarHeader className="h-16 border-b border-sidebar-border flex items-center">
-        <Link href="/" className="flex items-center gap-2 px-6">
-          <BarChart2 className="h-6 w-6" />
-          <span className="font-bold">Company Dashboard</span>
-        </Link>
-      </SidebarHeader>
+      {/* Sidebar Header */}
+      <SidebarGroupLabel className="border-b border-sidebar-border flex items-center font-bold ">
+        Homeplace Dashboard
+      </SidebarGroupLabel>
+
+      {/* Sidebar Menu */}
       <SidebarContent>
         <SidebarMenu>
-          {/* Example of a non-collapsible menu item */}
+          {/* Non-collapsible Menu Item: Order Calendar */}
           <SidebarMenuItem>
             <Link href="/" passHref legacyBehavior>
               <SidebarMenuButton asChild isActive={pathname === "/"}>
                 <a className="flex items-center gap-3">
-                  <Home className="h-4 w-4" />
-                  <span>Dashboard Home</span>
+                  <CalendarClock className="h-4 w-4" />
+                  <span>Order Calendar</span>
                 </a>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
 
-          {/* Example of a collapsible menu item */}
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton isActive={pathname.startsWith("/order")}>
-                  <a className="flex items-center gap-3">
-                    <Calendar className="h-4 w-4" />
-                    <span>Orders</span>
-                  </a>
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <Link href="/order-calendar" passHref legacyBehavior>
-                      <SidebarMenuButton asChild isActive={pathname === "/order-calendar"}>
-                        <a className="flex items-center gap-3 pl-6">
-                          <Calendar className="h-4 w-4" />
-                          <span>Order Calendar</span>
-                        </a>
-                      </SidebarMenuButton>
-                    </Link>
-                  </SidebarMenuItem>
-                  {/* Add more sub-items as needed */}
-                </SidebarMenu>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
+          {/* Order Analytics */}
+          <SidebarMenuItem>
+            <Link href="/order-analytics" passHref legacyBehavior>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === "/order-analytics"}
+              >
+                <a className="flex items-center gap-3">
+                  <ChartArea className="h-4 w-4" />
+                  <span>Order Analytics</span>
+                </a>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
 
-          {/* Repeat Collapsible structure for other expandable menu items */}
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton isActive={pathname.startsWith("/accounts")}>
-                  <a className="flex items-center gap-3">
-                    <DollarSign className="h-4 w-4" />
-                    <span>Accounts</span>
-                  </a>
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <Link href="/accounts-receivable" passHref legacyBehavior>
-                      <SidebarMenuButton asChild isActive={pathname === "/accounts-receivable"}>
-                        <a className="flex items-center gap-3 pl-6">
-                          <DollarSign className="h-4 w-4" />
-                          <span>Accounts Receivable</span>
-                        </a>
-                      </SidebarMenuButton>
-                    </Link>
-                  </SidebarMenuItem>
-                  {/* Add more sub-items as needed */}
-                </SidebarMenu>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
+          {/* Accounts Receivable */}
+          <SidebarMenuItem>
+            <Link href="/accounts-receivable" passHref legacyBehavior>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === "/accounts-receivable"}
+              >
+                <a className="flex items-center gap-3">
+                  <DollarSign className="h-4 w-4" />
+                  <span>Accounts Receivable</span>
+                </a>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
 
-          {/* Add more collapsible or non-collapsible menu items as needed */}
+          {/* Add more menu items as needed */}
         </SidebarMenu>
       </SidebarContent>
+
+      {/* Sidebar Rail and Mobile Trigger */}
       <SidebarRail />
       <MobileTrigger />
     </>
@@ -135,16 +104,12 @@ const DashboardSidebarContent = () => {
 };
 
 export default function DashboardSidebar() {
-  // Remove isCollapsed state and related props since Sidebar doesn't accept them
   return (
-    <SidebarProvider>
-      <Sidebar
-        collapsible="icon" // Use the accepted string value
-        className={`transition-all duration-300 w-64 h-screen fixed top-0 left-0 bg-white shadow-lg z-20`}
-        // Remove defaultCollapsed and onCollapsedChange props
-      >
-        <DashboardSidebarContent />
-      </Sidebar>
-    </SidebarProvider>
+    <Sidebar
+      collapsible="icon"
+      className={`transition-all duration-300 h-screen fixed top-0 left-0 bg-white shadow-lg z-20 w-48`} // Adjusted width
+    >
+      <DashboardSidebarContent />
+    </Sidebar>
   );
 }

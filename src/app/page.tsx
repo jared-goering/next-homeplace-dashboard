@@ -110,6 +110,8 @@ export default function Home() {
   
           // Keep the isManual flag as is, default to false if undefined
           const isManual = sale.isManual || false;
+
+          // console.log("salesData:", sale);
   
           return { ...sale, group, PrintDateRange, isManual };
         });
@@ -260,10 +262,23 @@ export default function Home() {
     [sales]
   );
 
+  const dummyOrder: Sale = {
+  OrderNumber: "Dummy-001",
+  Customer: "Test Customer",
+  OrderDate: new Date().toISOString(),
+  Status: "Completed",
+  InvoiceAmount: 0,
+  PrintDateRange: undefined,
+  isActive: false,
+  isManual: true,
+  group: "Test Group",
+};
+
   const completedSales = useMemo(
     () => sales.filter((sale) => !sale.isActive),
     [sales]
   );
+
 
 
   if (loading) {
@@ -306,27 +321,27 @@ export default function Home() {
 
           {/* Tabs */}
           <div className="flex">
-            <button
-              className={`flex-1 py-2 px-4 text-center rounded-t-md ${
-                activeTab === 'active'
-                  ? 'bg-white border-t border-l border-r border-gray-300'
-                  : 'bg-gray-200'
-              }`}
-              onClick={() => setActiveTab('active')}
-            >
-              Active Orders
-            </button>
-            <button
-              className={`flex-1 py-2 px-4 text-center rounded-t-md ${
-                activeTab === 'completed'
-                  ? 'bg-white border-t border-l border-r border-gray-300'
-                  : 'bg-gray-200'
-              }`}
-              onClick={() => setActiveTab('completed')}
-            >
-              Completed Orders
-            </button>
-          </div>
+          <button
+            className={`tab flex-1 py-2 px-4 text-center rounded-t-md ${
+              activeTab === 'active'
+                ? 'bg-white border-t border-l border-r border-gray-300'
+                : 'bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('active')}
+          >
+            Active Orders
+          </button>
+          <button
+            className={`tab flex-1 py-2 px-4 text-center rounded-t-md ${
+              activeTab === 'completed'
+                ? 'bg-white border-t border-l border-r border-gray-300'
+                : 'bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('completed')}
+          >
+            Completed Orders
+          </button>
+        </div>
 
           {/* SalesList */}
           {activeTab === 'active' && (
@@ -348,8 +363,8 @@ export default function Home() {
             />
           )}
         </div>
-        <div className="md:w-1/3 md:prl-4">
-          <SalesCalendar sales={sales} />
+        <div className="md:w-1/3 md:pl-4 flex-shrink-0">
+        <SalesCalendar sales={sales} />
         </div>
       </div>
    
