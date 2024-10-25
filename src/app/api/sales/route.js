@@ -65,6 +65,7 @@ async function fetchExternalOrdersCin7() {
       OrderNumber: sale.OrderNumber,
       isManual: false,
       isActive: true,
+      needsDetailFetch: true, 
       lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
     };
   });
@@ -223,6 +224,7 @@ async function updateExternalOrdersInFirebase(externalOrders) {
     console.error('Error updating external orders in Firebase:', error);
   }
 }
+
 
 
 // Helper function to mark inactive external orders

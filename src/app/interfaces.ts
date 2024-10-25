@@ -12,4 +12,6 @@ export interface Sale {
   PrintDateRange?: DateRange;
   isManual?: boolean; // Add this line
   isActive: boolean; // Added property
+  totalQuantity?: number; // Add this field
+  needsDetailFetch?: boolean; // Optional field to indicate data fetch status
 }
