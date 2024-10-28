@@ -76,7 +76,7 @@ async function fetchExternalOrdersCin7() {
 // **New** Helper function to fetch external orders from Printavo
 async function fetchExternalOrdersPrintavo() {
   const statusIds = [
-    "380067",
+    // "380067",
     "454197",
     "380072",
     "380073",
@@ -237,20 +237,75 @@ async function markInactiveExternalOrders(latestExternalOrders) {
   const latestOrderNumbers = new Set(latestExternalOrders.map(order => order.OrderNumber));
   const inactiveBatch = firestore.batch();
 
-  existingOrdersSnapshot.forEach((doc) => {
+  for (const doc of existingOrdersSnapshot.docs) {
     const orderNumber = doc.id;
+    const orderData = doc.data();
+
+    // Check if the order is missing from the latest data (i.e., it is inactive)
     if (!latestOrderNumbers.has(orderNumber)) {
       const orderRef = firestore.collection('orders').doc(orderNumber);
-      inactiveBatch.update(orderRef, {
-        isActive: false,
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      
+      // Only fetch InvoiceDate if it is null or not set
+      if (!orderData.InvoiceDate) {
+        const invoiceDate = await fetchInvoiceDateFromCin7(orderNumber);
+        if (invoiceDate) {
+          inactiveBatch.update(orderRef, {
+            isActive: false,
+            InvoiceDate: invoiceDate,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        } else {
+          inactiveBatch.update(orderRef, {
+            isActive: false,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      } else {
+        // If InvoiceDate is already set, just mark it inactive without fetching again
+        inactiveBatch.update(orderRef, {
+          isActive: false,
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
     }
-  });
+  }
 
   // Commit the batch update
   await inactiveBatch.commit();
 }
+
+// Helper function to fetch InvoiceDate from Cin7 by OrderNumber
+async function fetchInvoiceDateFromCin7(orderNumber) {
+  try {
+    const accountId = process.env.CIN7_ACCOUNT_ID;
+    const applicationKey = process.env.CIN7_APPLICATION_KEY;
+
+    const response = await axios.get(
+      `https://inventory.dearsystems.com/ExternalApi/v2/saleList`,
+      {
+        params: { Search: orderNumber },
+        headers: {
+          'api-auth-accountid': accountId,
+          'api-auth-applicationkey': applicationKey,
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    const salesData = response.data.SaleList;
+    if (salesData && salesData.length > 0) {
+      const invoiceDate = salesData[0].InvoiceDate; // Assuming first result is the correct order
+      return invoiceDate || null; // Return InvoiceDate if available, otherwise null
+    } else {
+      console.warn(`No data found for OrderNumber: ${orderNumber}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`Error fetching InvoiceDate for OrderNumber ${orderNumber}:`, error);
+    return null;
+  }
+}
+
 
 
 // Helper function to fetch all orders from Firebase

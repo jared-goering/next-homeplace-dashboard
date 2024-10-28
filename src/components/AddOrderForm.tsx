@@ -17,7 +17,7 @@ interface NewOrder {
   Customer: string;
   OrderDate: string; // ISO date string
   Status: string;
-  InvoiceAmount: number;
+  totalQuantity: number; // Changed from InvoiceAmount to totalQuantity
   PrintDateRange?: DateRange;
 }
 
@@ -26,7 +26,7 @@ const AddOrderForm: React.FC<AddOrderFormProps> = ({ onAddOrder }) => {
   const [customer, setCustomer] = useState('');
   const [orderDate, setOrderDate] = useState<Date | undefined>(undefined);
   const [status, setStatus] = useState('');
-  const [invoiceAmount, setInvoiceAmount] = useState<number | ''>('');
+  const [orderQuantity, setOrderQuantity] = useState<number | ''>(''); // New state for order quantity
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +36,7 @@ const AddOrderForm: React.FC<AddOrderFormProps> = ({ onAddOrder }) => {
       Customer: customer,
       OrderDate: orderDate ? orderDate.toISOString() : '',
       Status: status,
-      InvoiceAmount: Number(invoiceAmount),
+      totalQuantity: Number(orderQuantity), // Use orderQuantity here
     };
 
     onAddOrder(newOrder);
@@ -46,11 +46,11 @@ const AddOrderForm: React.FC<AddOrderFormProps> = ({ onAddOrder }) => {
     setCustomer('');
     setOrderDate(undefined);
     setStatus('');
-    setInvoiceAmount('');
+    setOrderQuantity(''); // Reset orderQuantity
   };
 
   return (
-    <Card className="w-full"> {/* Make the card full width */}
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-xl">Add New Order</CardTitle>
       </CardHeader>
@@ -110,13 +110,13 @@ const AddOrderForm: React.FC<AddOrderFormProps> = ({ onAddOrder }) => {
               />
             </div>
             <div>
-              <label className="block font-medium mb-1">Invoice Amount:</label>
+              <label className="block font-medium mb-1">Order Quantity:</label>
               <Input
                 type="number"
-                value={invoiceAmount}
-                onChange={(e) => setInvoiceAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                value={orderQuantity}
+                onChange={(e) => setOrderQuantity(e.target.value === '' ? '' : parseFloat(e.target.value))}
                 required
-                placeholder="Enter invoice amount"
+                placeholder="Enter order quantity"
               />
             </div>
           </div>

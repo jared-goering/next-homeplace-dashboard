@@ -18,21 +18,23 @@ async function fetchOrderDetailFromCin7(saleID) {
 
   try {
     const response = await axios.get(
-      'https://inventory.dearsystems.com/ExternalApi/v2/sale/order',
+      "https://inventory.dearsystems.com/ExternalApi/v2/sale/order",
       {
         params: { SaleID: saleID },
         headers: {
-          'api-auth-accountid': accountId,
-          'api-auth-applicationkey': applicationKey,
-          Accept: 'application/json',
+          "api-auth-accountid": accountId,
+          "api-auth-applicationkey": applicationKey,
+          Accept: "application/json",
         },
       }
     );
 
     const orderDetail = response.data;
+    // console.log('Order detail:', orderDetail);
 
     // Extract the quantity data from orderDetail
     const totalQuantity = calculateTotalQuantity(orderDetail);
+    // console.log('Total quantity:', totalQuantity);
 
     return {
       totalQuantity,
@@ -47,10 +49,24 @@ async function fetchOrderDetailFromCin7(saleID) {
 
 // Helper function to calculate total quantity from order detail
 function calculateTotalQuantity(orderDetail) {
-  // Assuming orderDetail has an Items array with Quantity field
-  const items = orderDetail?.SaleOrder?.Lines || [];
-  return items.reduce((total, item) => total + (item.Quantity || 0), 0);
-}
+    // Check if Lines array exists at the top level of orderDetail
+    if (!orderDetail || !Array.isArray(orderDetail.Lines)) {
+      console.warn('Invalid order detail structure:', orderDetail);
+      return 0; // Return 0 if structure is unexpected
+    }
+  
+    // Extract quantity from each line item
+    const items = orderDetail.Lines;
+    const totalQuantity = items.reduce((total, item) => {
+      // Use 0 as default if Quantity is undefined
+      return total + (item.Quantity || 0);
+    }, 0);
+  
+    console.log('Calculated Total Quantity:', totalQuantity); // Debugging line
+    return totalQuantity;
+  }
+  
+  
 
 // Scheduled function using functions.pubsub.schedule().onRun()
 exports.fetchCin7OrderDetails = functions.pubsub

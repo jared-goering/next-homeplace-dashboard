@@ -195,10 +195,14 @@ const groupPrefixMap = {
         cell: ({ row }) => <OrderDateCell row={row} formatDate={formatDate} />,
       },
       {
-        accessorKey: "Status",
-        header: "Status",
-        cell: ({ row }) => <StatusCell row={row} />,
+        accessorKey: "totalQuantity",
+        header: "Total Quantity",
+        cell: ({ row }) => {
+          const totalQuantity = row.original.totalQuantity;
+          return totalQuantity !== undefined && totalQuantity !== null ? totalQuantity : "N/A";
+        },
       },
+      
     {
       accessorKey: "PrintDates",
       header: "Print Dates",
@@ -206,6 +210,11 @@ const groupPrefixMap = {
         <PrintDatesCell row={row} handleDateChange={handleDateChange} />
       ),
     },
+    {
+        accessorKey: "Status",
+        header: "Status",
+        cell: ({ row }) => <StatusCell row={row} />,
+      },
     {
         header: "Actions",
         cell: ({ row }) => (

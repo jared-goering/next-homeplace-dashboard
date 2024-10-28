@@ -105,7 +105,7 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
       );
 
       let backgroundColor;
-      let textColor = '#212529';
+      let textColor = '';
       
       // Normalize the customer name for matching
       const normalizedCustomer = sale.Customer ? sale.Customer.toLowerCase().trim() : '';
@@ -113,12 +113,14 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
 
       
       if (normalizedCustomer.includes('murdoch')) {
-        backgroundColor = '#F5BDA8'; // Murdochs
+        backgroundColor = '#d8dbfb'; // Murdochs
+        textColor = '#51acf8';
       } else if (!sale.isManual) {
-        backgroundColor = '#C2CB96'; // Printavo
+        backgroundColor = '#fbe5d2'; // Printavo
+        textColor = '#ec672c';
       } else {
-        backgroundColor = '#CBDDE9'; // Regular
-        textColor = '#212529';
+        backgroundColor = '#cdf0d6'; // Regular
+        textColor = '#53aa31';
       }
 
       console.log('Final Background Color:', backgroundColor);
@@ -150,8 +152,8 @@ console.log('Final Text Color:', textColor);
       <div className="mb-4">
         <span
           style={{
-            backgroundColor: '#C2CB96',
-            color: '#212529',
+            backgroundColor: '#fbe5d2',
+            color: '#ec672c',
             padding: '4px 8px',
             marginRight: '8px',
             borderRadius: '4px',
@@ -161,8 +163,8 @@ console.log('Final Text Color:', textColor);
         </span>
         <span
           style={{
-            backgroundColor: '#F5BDA8',
-            color: '#212529',
+            backgroundColor: '#d8dbfb',
+            color: '#3d4bf3',
             padding: '4px 8px',
             marginRight: '8px',
             borderRadius: '4px',
@@ -172,8 +174,8 @@ console.log('Final Text Color:', textColor);
         </span>
         <span
           style={{
-            backgroundColor: '#CBDDE9',
-            color: '#212529',
+            backgroundColor: '#cdf0d6',
+            color: '#53aa31',
             padding: '4px 8px',
             borderRadius: '4px',
           }}

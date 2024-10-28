@@ -7,7 +7,7 @@ export interface Sale {
   Customer: string;
   OrderDate: string; // ISO date string
   Status: string;
-  InvoiceAmount: number;
+  InvoiceAmount?: number; // Make it optional by adding '?'
   group?: string;
   PrintDateRange?: DateRange;
   isManual?: boolean; // Add this line

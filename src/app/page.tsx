@@ -29,14 +29,15 @@ interface RawSale {
   };
   isManual?: boolean;
   isActive: boolean;
+  totalQuantity?: number; // Add this line
 }
 
 interface NewOrder {
   OrderNumber: string;
   Customer: string;
-  OrderDate: string;
+  OrderDate: string; // ISO date string
   Status: string;
-  InvoiceAmount: number;
+  totalQuantity: number; // Changed from InvoiceAmount to totalQuantity
   PrintDateRange?: DateRange;
 }
 
@@ -56,6 +57,7 @@ function determineGroup(orderNumber: string, customerName: string, orderDate: st
 }
 
 // Function to process raw sales data
+
 function processRawSale(sale: RawSale): Sale {
   const customerName = sale.Customer ?? "";
   const group = determineGroup(sale.OrderNumber, customerName, sale.OrderDate);
@@ -69,8 +71,12 @@ function processRawSale(sale: RawSale): Sale {
 
   const isManual = sale.isManual ?? false;
 
-  return { ...sale, group, PrintDateRange, isManual };
+  // Include totalQuantity from the raw sale data
+  const totalQuantity = sale.totalQuantity;
+
+  return { ...sale, group, PrintDateRange, isManual, totalQuantity };
 }
+
 
 export default function Home() {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -160,25 +166,27 @@ export default function Home() {
     [sales]
   );
 
-  const handleAddOrder = async (newOrder: NewOrder) => {
-    try {
-      const customerName = newOrder.Customer ?? "";
-      const group = determineGroup(newOrder.OrderNumber, customerName, newOrder.OrderDate);
+// Update the handleAddOrder function
+const handleAddOrder = async (newOrder: NewOrder) => {
+  try {
+    const customerName = newOrder.Customer ?? "";
+    const group = determineGroup(newOrder.OrderNumber, customerName, newOrder.OrderDate);
 
-      const newSale: Sale = {
-        ...newOrder,
-        isActive: true,
-        isManual: true,
-        group,
-      };
+    const newSale: Sale = {
+      ...newOrder,
+      isActive: true,
+      isManual: true,
+      group,
+      totalQuantity: newOrder.totalQuantity, // Ensure totalQuantity is included
+    };
 
-      await axios.post("/api/sales/add-order", newSale);
-      setSales((prevSales) => [...prevSales, newSale]);
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error adding new order:", error);
-    }
-  };
+    await axios.post("/api/sales/add-order", newSale);
+    setSales((prevSales) => [...prevSales, newSale]);
+    setIsModalOpen(false);
+  } catch (error) {
+    console.error("Error adding new order:", error);
+  }
+};
 
   const activeSales = useMemo(() => sales.filter((sale) => sale.isActive), [sales]);
   const completedSales = useMemo(() => sales.filter((sale) => !sale.isActive), [sales]);
