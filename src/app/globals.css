@@ -92,3 +92,8 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.fc {
+  overflow: visible !important;
+  position: relative;
+}

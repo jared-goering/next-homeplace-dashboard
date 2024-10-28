@@ -4,29 +4,67 @@ import { EventInput } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import { Sale } from '../app/interfaces'; // Adjust the import path as necessary
 import { format } from 'date-fns';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { EventContentArg } from '@fullcalendar/core'; // Import FullCalendar's event content type
 
 function isValidDate(date: any): date is Date {
   return date instanceof Date && !isNaN(date.getTime());
 }
 
-// A custom render function for events
-function renderEventContent(eventInfo: any) {
-  return (
-    <>
-      <b>{eventInfo.timeText}</b> <i>{eventInfo.event.title}</i>
-    </>
-  );
-}
+// Utility function to truncate long event titles
+function truncateTitle(title: string, length: number = 20): string {
+    return title.length > length ? `${title.substring(0, length)}...` : title;
+  }
+
+// Custom render function for events with HoverCard
+function renderEventContent(eventInfo: EventContentArg) {
+    const truncatedTitle = truncateTitle(eventInfo.event.title);
+  
+    return (
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <div
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                padding: '2px 4px',
+                color: eventInfo.event.extendedProps.textColor || '#212529',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              <i>{truncatedTitle}</i>
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent
+            style={{
+              zIndex: 9999,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              fontSize: '0.875rem',
+              padding: '8px',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <div style={{ fontWeight: 600 }}>{eventInfo.event.title}</div>
+          </HoverCardContent>
+        </HoverCard>
+      </div>
+    );
+  }
 
 interface SalesCalendarProps {
   sales: Sale[];
 }
 
 const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
-  // Prepare events from sales data
   const events: EventInput[] = sales
     .filter((sale) => {
-      // Ensure sale has necessary properties
       if (
         !sale.PrintDateRange ||
         !sale.PrintDateRange.from ||
@@ -38,7 +76,6 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
       const from = sale.PrintDateRange.from;
       const to = sale.PrintDateRange.to;
 
-      // Ensure 'from' and 'to' are valid Date objects
       const startDate = from instanceof Date ? from : new Date(from);
       const endDate =
         to !== undefined
@@ -47,15 +84,15 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
             : new Date(to)
           : startDate;
 
-      // Validate dates
       if (!isValidDate(startDate) || !isValidDate(endDate)) {
         console.warn('Invalid date for sale:', sale);
-        return false; // Exclude this sale
+        return false;
       }
 
-      return true; // Include this sale
+      return true;
     })
     .map((sale) => {
+        console.log(sale.Customer);
       const from = sale.PrintDateRange!.from!;
       const to = sale.PrintDateRange!.to;
 
@@ -63,25 +100,29 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
       const endDate =
         to !== undefined ? (to instanceof Date ? to : new Date(to)) : startDate;
 
-      // Adjust endDate for FullCalendar's exclusive end date
       const adjustedEndDate = new Date(
         endDate.getTime() + 24 * 60 * 60 * 1000
       );
 
-      // Determine source and set colors
       let backgroundColor;
       let textColor = '#212529';
-      if (!sale.isManual) {
-        // Printavo
-        backgroundColor = '#C2CB96'; 
-      } else if (sale.Customer && sale.Customer.includes('Murdoch')) {
-        // Murdochs
-        backgroundColor = '#F5BDA8'; 
+      
+      // Normalize the customer name for matching
+      const normalizedCustomer = sale.Customer ? sale.Customer.toLowerCase().trim() : '';
+      console.log('Normalized Customer:', normalizedCustomer);
+
+      
+      if (normalizedCustomer.includes('murdoch')) {
+        backgroundColor = '#F5BDA8'; // Murdochs
+      } else if (!sale.isManual) {
+        backgroundColor = '#C2CB96'; // Printavo
       } else {
-        // Regular
-        backgroundColor = '#CBDDE9'; 
+        backgroundColor = '#CBDDE9'; // Regular
         textColor = '#212529';
       }
+
+      console.log('Final Background Color:', backgroundColor);
+console.log('Final Text Color:', textColor);
 
       return {
         title: sale.Customer!,
@@ -106,7 +147,6 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Sales Calendar</h1>
-      {/* Legend */}
       <div className="mb-4">
         <span
           style={{
@@ -141,13 +181,15 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
           Regular
         </span>
       </div>
+      <div style={{ position: 'relative', zIndex: 0 }}>
       <FullCalendar
         plugins={[dayGridPlugin]}
         initialView="dayGridMonth"
         events={events}
-        eventContent={renderEventContent}
+        eventContent={renderEventContent} // Use the custom render function
         contentHeight="auto"
       />
+      </div>
     </div>
   );
 };
