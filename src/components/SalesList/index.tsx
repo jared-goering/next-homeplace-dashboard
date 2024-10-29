@@ -20,8 +20,8 @@ interface SalesListProps {
       dateRange: DateRange | undefined,
       isManual: boolean
     ) => Promise<void>;
-    handleFieldChange: (orderNumber: string, updatedSale: Sale) => void; // Change Partial<Sale> to Sale
-  }
+    handleFieldChange: (orderNumber: string, updatedFields: Partial<Sale>) => void; // Changed to Partial<Sale>
+}
   
 
   const SalesList: React.FC<SalesListProps> = ({
@@ -42,7 +42,7 @@ interface SalesListProps {
       
         const [year, month, day] = datePart.split('-').map(Number);
       
-        console.log("Parsed values - Year:", year, "Month:", month, "Day:", day);
+        // console.log("Parsed values - Year:", year, "Month:", month, "Day:", day);
       
         const date = new Date(year, month - 1, day);
       
@@ -61,15 +61,15 @@ interface SalesListProps {
       
       
 
-const handleFieldChangeLocal = useCallback(
-    (field: keyof Sale, value: any) => {
-      editedValuesRef.current = {
-        ...editedValuesRef.current,
-        [field]: value,
-      };
-    },
-    []
-  );
+      const handleFieldChangeLocal = useCallback(
+        (field: keyof Sale, value: any) => {
+          editedValuesRef.current = {
+            ...editedValuesRef.current,
+            [field]: value,
+          };
+        },
+        []
+      );
 
 
   const contextValue = useMemo(
@@ -105,8 +105,8 @@ const handleFieldChangeLocal = useCallback(
         );
 
         // Call handleFieldChange to update the backend
-        handleFieldChange(editingOrderNumber, newSale);
-      }
+        handleFieldChange(editingOrderNumber, editedValuesRef.current); // Pass only the edited fields
+    }
     }
     setEditingOrderNumber(null);
     editedValuesRef.current = {};

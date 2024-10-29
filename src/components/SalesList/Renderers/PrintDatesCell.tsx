@@ -1,5 +1,3 @@
-// components/SalesList/Renderers/PrintDatesCell.tsx
-
 import React, { useCallback } from "react";
 import { Row } from "@tanstack/react-table";
 import { Sale } from "@/app/interfaces";
@@ -28,9 +26,27 @@ const PrintDatesCell: React.FC<PrintDatesCellProps> = ({
     [handleDateChange, sale.OrderNumber, sale.isManual]
   );
 
+  // Convert `from` and `to` to `Date` objects if they are strings
+  const dateRange: DateRange | undefined = sale.PrintDateRange
+    ? {
+        from:
+          sale.PrintDateRange.from instanceof Date
+            ? sale.PrintDateRange.from
+            : sale.PrintDateRange.from
+            ? new Date(sale.PrintDateRange.from)
+            : undefined,
+        to:
+          sale.PrintDateRange.to instanceof Date
+            ? sale.PrintDateRange.to
+            : sale.PrintDateRange.to
+            ? new Date(sale.PrintDateRange.to)
+            : undefined,
+      }
+    : undefined;
+
   return (
     <DatePicker
-      dateRange={sale.PrintDateRange}
+      dateRange={dateRange}
       onDateChange={onDateChange}
       placeholder="Select date range"
     />

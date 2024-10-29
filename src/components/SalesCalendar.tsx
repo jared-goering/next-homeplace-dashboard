@@ -92,7 +92,7 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
       return true;
     })
     .map((sale) => {
-        console.log(sale.Customer);
+        // console.log(sale.Customer);
       const from = sale.PrintDateRange!.from!;
       const to = sale.PrintDateRange!.to;
 
@@ -109,7 +109,7 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
       
       // Normalize the customer name for matching
       const normalizedCustomer = sale.Customer ? sale.Customer.toLowerCase().trim() : '';
-      console.log('Normalized Customer:', normalizedCustomer);
+    //   console.log('Normalized Customer:', normalizedCustomer);
 
       
       if (normalizedCustomer.includes('murdoch')) {
@@ -123,8 +123,8 @@ const SalesCalendar: React.FC<SalesCalendarProps> = ({ sales }) => {
         textColor = '#53aa31';
       }
 
-      console.log('Final Background Color:', backgroundColor);
-console.log('Final Text Color:', textColor);
+//       console.log('Final Background Color:', backgroundColor);
+// console.log('Final Text Color:', textColor);
 
       return {
         title: sale.Customer!,

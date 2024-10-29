@@ -48,7 +48,7 @@ const OrderDateCell: React.FC<OrderDateCellProps> = ({ row, formatDate }) => {
     setValue(date);
     // Convert the selected date to the appropriate format before saving
     const newValue = date ? date.toISOString().split("T")[0] : "";
-    handleFieldChangeLocal("OrderDate", newValue);
+    handleFieldChangeLocal('OrderDate', newValue);
   };
 
   if (isEditing) {

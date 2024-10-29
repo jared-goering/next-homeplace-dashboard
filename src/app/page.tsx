@@ -114,57 +114,220 @@ export default function Home() {
     }
   };
 
-  const handleFieldChange = async (orderNumber: string, updatedSale: Sale) => {
-    setSales((prevSales) =>
-      prevSales.map((sale) => (sale.OrderNumber === orderNumber ? updatedSale : sale))
-    );
-
+  const handleFieldChange = async (orderNumber: string, updatedFields: Partial<Sale>) => {
+    console.log('handleFieldChange called with:', orderNumber, updatedFields);
+  
+    const targetSale = sales.find((sale) => sale.OrderNumber === orderNumber);
+    if (!targetSale) return;
+  
+    const oldGroup = targetSale.group;
+  
+    let orderNumbersToUpdate: string[];
+  
+    // Determine if we need to update multiple orders or just one
+    if (
+      oldGroup &&
+      oldGroup.startsWith("Murdochs") &&
+      (updatedFields.OrderDate || updatedFields.Customer)
+    ) {
+      // For Murdochs group, if OrderDate or Customer changes, update all orders in the group
+      orderNumbersToUpdate = sales
+        .filter((sale) => sale.group === oldGroup)
+        .map((sale) => sale.OrderNumber);
+    } else {
+      // For other fields or non-grouped orders, update only the target order
+      orderNumbersToUpdate = [orderNumber];
+    }
+  
+    const updatedSales = sales.map((sale) => {
+      if (orderNumbersToUpdate.includes(sale.OrderNumber)) {
+        // Create a copy of the sale object
+        const updatedSale = { ...sale };
+  
+        // Update only specified fields
+        for (const key of Object.keys(updatedFields) as (keyof Sale)[]) {
+          if (updatedFields[key] !== undefined) {
+            updatedSale[key] = updatedFields[key]!;
+          }
+        }
+  
+        // Recalculate group if OrderDate or Customer changed
+        if (updatedFields.OrderDate || updatedFields.Customer) {
+          updatedSale.group = determineGroup(
+            updatedSale.OrderNumber,
+            updatedSale.Customer,
+            updatedSale.OrderDate
+          );
+        }
+  
+        // Log the updated sale
+        console.log("Updated sale:", updatedSale);
+  
+        return updatedSale;
+      }
+      return sale;
+    });
+  
+    // Log the updated sales array
+    console.log("Updated sales array:", updatedSales);
+  
+    setSales(updatedSales);
+  
     try {
-      await axios.post("/api/sales/update-order", {
-        orderNumber,
-        updatedData: updatedSale,
-      });
+      await Promise.all(
+        orderNumbersToUpdate.map(async (orderNum) => {
+          const sale = updatedSales.find((sale) => sale.OrderNumber === orderNum);
+          if (!sale) return;
+  
+          const updatedData: Partial<Sale> = {};
+  
+          // Include all updated fields
+          for (const key of Object.keys(updatedFields) as (keyof Sale)[]) {
+            if (updatedFields[key] !== undefined) {
+              updatedData[key] = updatedFields[key]!;
+            }
+          }
+  
+          // Include updated group if necessary
+          if (updatedFields.OrderDate || updatedFields.Customer) {
+            updatedData.group = sale.group; // Use the new group
+          }
+  
+          console.log("Sending update for order:", sale.OrderNumber, updatedData);
+  
+          try {
+            const response = await axios.post("/api/sales/update-order", {
+              orderNumber: sale.OrderNumber,
+              updatedData,
+            });
+            console.log(`Order ${sale.OrderNumber} updated successfully:`, response.data);
+          } catch (error) {
+            if (axios.isAxiosError(error)) {
+              console.error(
+                `Error updating order ${sale.OrderNumber}:`,
+                error.response?.data || error.message
+              );
+            } else {
+              console.error(`Error updating order ${sale.OrderNumber}:`, error);
+            }
+          }
+        })
+      );
     } catch (error) {
-      console.error("Error updating order:", error);
+      console.error("Error updating orders:", error);
     }
   };
+  
+const handleDateChange = useCallback(
+  async (orderNumber: string, dateRange?: DateRange): Promise<void> => {
+    // Prepare data for the API
+    let fromDate = dateRange?.from ? new Date(dateRange.from) : null;
+    let toDate = dateRange?.to ? new Date(dateRange.to) : null;
 
-  const handleDateChange = useCallback(
-    async (orderNumber: string, dateRange?: DateRange): Promise<void> => {
-      setSales((prevSales) =>
-        prevSales.map((sale) =>
-          sale.OrderNumber === orderNumber ? { ...sale, PrintDateRange: dateRange } : sale
-        )
-      );
+    if (!fromDate && toDate) fromDate = toDate;
+    if (fromDate && !toDate) toDate = fromDate;
 
-      let fromDate = dateRange?.from ? new Date(dateRange.from) : null;
-      let toDate = dateRange?.to ? new Date(dateRange.to) : null;
+    if (fromDate && isNaN(fromDate.getTime())) fromDate = null;
+    if (toDate && isNaN(toDate.getTime())) toDate = null;
 
-      if (!fromDate && toDate) fromDate = toDate;
-      if (fromDate && !toDate) toDate = fromDate;
+    const printDateRange: DateRange | null =
+      fromDate && toDate
+        ? {
+            from: fromDate,
+            to: toDate,
+          }
+        : null;
 
-      if (fromDate && isNaN(fromDate.getTime())) fromDate = null;
-      if (toDate && isNaN(toDate.getTime())) toDate = null;
+    const targetSale = sales.find((sale) => sale.OrderNumber === orderNumber);
+    if (!targetSale) return;
 
-      const printDateRange =
-        fromDate && toDate
-          ? {
-              from: fromDate.toISOString(),
-              to: toDate.toISOString(),
-            }
-          : null;
+    const group = targetSale.group;
+
+    if (group?.startsWith("Murdochs")) {
+      const updatedSales = sales.map((sale) => {
+        if (sale.group === group) {
+          const updatedSale = { ...sale };
+
+          if (printDateRange) {
+            updatedSale.PrintDateRange = printDateRange;
+          }
+
+          return updatedSale;
+        }
+        return sale;
+      });
+
+      setSales(updatedSales);
 
       try {
+        await Promise.all(
+          updatedSales
+            .filter((sale) => sale.group === group)
+            .map((sale) => {
+              const updatedData: Partial<Sale> = {};
+      
+              if (printDateRange && printDateRange.from && printDateRange.to) {
+                const printDateRangeData = {
+                  from: printDateRange.from.toISOString(),
+                  to: printDateRange.to.toISOString(),
+                };
+      
+                updatedData.PrintDateRange = printDateRangeData;
+              } else {
+                // Optionally, if you need to clear PrintDateRange in the backend
+                updatedData.PrintDateRange = undefined;
+              }
+      
+              console.log("Updating order:", sale.OrderNumber, updatedData);
+      
+              return axios.post("/api/sales/update-order", {
+                orderNumber: sale.OrderNumber,
+                updatedData,
+              });
+            })
+        );
+      } catch (error) {
+        console.error("Error updating print date range:", error);
+      }
+    } else {
+      setSales((prevSales) =>
+        prevSales.map((sale) =>
+          sale.OrderNumber === orderNumber
+            ? { ...sale, PrintDateRange: printDateRange || undefined }
+            : sale
+        )      
+      );
+
+      try {
+        const updatedData: Partial<Sale> = {};
+
+        if (printDateRange) {
+          const printDateRangeData = {
+            from: printDateRange.from!.toISOString(),
+            to: printDateRange.to!.toISOString(),
+          };
+
+          updatedData.PrintDateRange = printDateRangeData;
+        } else {
+          updatedData.PrintDateRange = undefined;
+        }
+
+        console.log("Updating order:", orderNumber, updatedData);
+
         await axios.post("/api/sales/update-order", {
           orderNumber,
-          updatedData: { PrintDateRange: printDateRange },
+          updatedData,
         });
       } catch (error) {
         console.error("Error updating print date range:", error);
       }
-    },
-    [sales]
-  );
+    }
+  },
+  [sales]
+);
+
+
+
 
 // Update the handleAddOrder function
 const handleAddOrder = async (newOrder: NewOrder) => {

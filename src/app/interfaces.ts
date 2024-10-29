@@ -9,9 +9,14 @@ export interface Sale {
   Status: string;
   InvoiceAmount?: number; // Make it optional by adding '?'
   group?: string;
-  PrintDateRange?: DateRange;
-  isManual?: boolean; // Add this line
+  PrintDateRange?: {
+    from?: Date | string;
+    to?: Date | string;
+  };
+    isManual?: boolean; // Add this line
   isActive: boolean; // Added property
   totalQuantity?: number; // Add this field
   needsDetailFetch?: boolean; // Optional field to indicate data fetch status
+  [key: string]: any; // Index signature
+  
 }
