@@ -34,18 +34,32 @@ interface SalesListProps {
     const [editedValues, setEditedValues] = useState<Partial<Sale>>({});
     const editedValuesRef = useRef<Partial<Sale>>({});
 
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
-    const options: Intl.DateTimeFormatOptions = {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    };
-    return new Intl.DateTimeFormat("en-US", options).format(
-      new Date(dateString)
-    );
-  };
+    const formatDate = (dateString: string) => {
+        if (!dateString) return "N/A";
+      
+        // Split at 'T' to separate date and time
+        const [datePart] = dateString.split('T');
+      
+        const [year, month, day] = datePart.split('-').map(Number);
+      
+        console.log("Parsed values - Year:", year, "Month:", month, "Day:", day);
+      
+        const date = new Date(year, month - 1, day);
+      
+        if (isNaN(date.getTime())) {
+          console.error("Invalid Date object constructed from dateString:", dateString);
+          return "Invalid Date";
+        }
+      
+        return new Intl.DateTimeFormat("en-US", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(date);
+      };
+      
+      
+      
 
 const handleFieldChangeLocal = useCallback(
     (field: keyof Sale, value: any) => {
@@ -134,6 +148,17 @@ const groupPrefixMap = {
   } as const;
   
   type GroupPrefix = keyof typeof groupPrefixMap;
+
+    // Determine styles based on order type
+    const getOrderStyles = (group: string) => {
+        if (group.startsWith("Murdochs")) {
+          return { backgroundColor: '#d8dbfb', color: '#51acf8', borderColor: '#51acf8' };
+        } else if (group.startsWith("Printavo")) {
+          return { backgroundColor: '#fbe5d2', color: '#ec672c', borderColor: '#ec672c' };
+        } else {
+          return { backgroundColor: '#cdf0d6', color: '#53aa31', borderColor: '#53aa31' };
+        }
+      };
 
 
   const columns: ColumnDef<Sale, any>[] = useMemo(() => [

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { Row } from "@tanstack/react-table";
 import { Sale } from "@/app/interfaces";
 import { SalesListContext } from "../SalesListContext";
+import { Input } from "@/components/ui/input"; // Import the shadcn UI Input component
 
 interface StatusCellProps {
   row: Row<Sale>;
@@ -36,7 +37,7 @@ const StatusCell: React.FC<StatusCellProps> = ({ row }) => {
 
   if (isEditing) {
     return (
-      <input
+      <Input
         type="text"
         value={value}
         onChange={handleChange}

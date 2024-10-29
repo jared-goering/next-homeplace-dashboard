@@ -208,12 +208,22 @@ async function updateExternalOrdersInFirebase(externalOrders) {
   const batch = firestore.batch();
 
   try {
-    // Save or update external orders in Firebase
-    externalOrders.forEach((order) => {
+    const fieldsToUpdate = ['Status', 'isActive', 'needsDetailFetch', 'lastUpdated']; // Fields to update from external data
+
+    for (const order of externalOrders) {
       const sanitizedOrder = removeUndefinedValues(order);
       const orderRef = firestore.collection('orders').doc(order.OrderNumber);
-      batch.set(orderRef, sanitizedOrder, { merge: true });
-    });
+
+      // Prepare the data to update
+      const updateData = {};
+      for (const field of fieldsToUpdate) {
+        if (sanitizedOrder.hasOwnProperty(field)) {
+          updateData[field] = sanitizedOrder[field];
+        }
+      }
+
+      batch.set(orderRef, updateData, { merge: true });
+    }
 
     // Commit the batch write
     await batch.commit();
