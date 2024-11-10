@@ -58,6 +58,8 @@ async function fetchExternalOrdersCin7() {
     },
   });
 
+  
+
   const salesData = response.data; // Assuming response.data has a property 'SaleList'
   const externalOrders = salesData.SaleList.map((sale) => {
     return {
@@ -208,18 +210,27 @@ async function updateExternalOrdersInFirebase(externalOrders) {
   const batch = firestore.batch();
 
   try {
-    const fieldsToUpdate = ['Status', 'isActive', 'needsDetailFetch', 'lastUpdated']; // Fields to update from external data
+    const fieldsToUpdate = ['Status', 'isActive', 'needsDetailFetch', 'lastUpdated', 'SaleID']; // Include 'SaleID'
 
     for (const order of externalOrders) {
       const sanitizedOrder = removeUndefinedValues(order);
       const orderRef = firestore.collection('orders').doc(order.OrderNumber);
 
-      // Prepare the data to update
-      const updateData = {};
-      for (const field of fieldsToUpdate) {
-        if (sanitizedOrder.hasOwnProperty(field)) {
-          updateData[field] = sanitizedOrder[field];
+      const docSnapshot = await orderRef.get();
+      const orderExists = docSnapshot.exists;
+
+      let updateData = {};
+
+      if (orderExists) {
+        // Order exists, update limited fields
+        for (const field of fieldsToUpdate) {
+          if (sanitizedOrder.hasOwnProperty(field)) {
+            updateData[field] = sanitizedOrder[field];
+          }
         }
+      } else {
+        // New order, store all fields
+        updateData = sanitizedOrder;
       }
 
       batch.set(orderRef, updateData, { merge: true });
